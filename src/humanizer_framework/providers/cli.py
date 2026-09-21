@@ -54,10 +54,10 @@ class CommandProvider:
 class CodexCLIProvider(CommandProvider):
     def __init__(self, *, timeout_seconds: int = 120):
         super().__init__(
-            command=["codex", "exec", "--ephemeral", "-"],
+            command=["codex", "exec", "--ephemeral"],
             name="codex-cli",
             timeout_seconds=timeout_seconds,
-            use_stdin=True,
+            use_stdin=False,
         )
 
 

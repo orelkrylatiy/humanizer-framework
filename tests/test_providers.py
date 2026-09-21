@@ -4,7 +4,9 @@ from humanizer_framework.providers import ClaudeCLIProvider, CodexCLIProvider, L
 
 def test_provider_specs_are_lazy_and_constructible():
     assert LiteLLMProvider("zai/glm-4.7").model == "zai/glm-4.7"
-    assert CodexCLIProvider().command[:2] == ["codex", "exec"]
+    codex = CodexCLIProvider()
+    assert codex.command[:2] == ["codex", "exec"]
+    assert codex.use_stdin is False
     assert ClaudeCLIProvider().command[:2] == ["claude", "-p"]
 
 
