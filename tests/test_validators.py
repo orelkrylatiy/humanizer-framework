@@ -70,3 +70,20 @@ def test_known_name_is_required_in_first_tutoring_outreach():
         constraints,
     )
     assert any(issue.code == "missing_client_name" and issue.hard for issue in issues)
+
+
+def test_time_colon_survives_russian_normalization():
+    request = _request()
+    current_plan = plan(request)
+    constraints = default_constraints(request, current_plan)
+    value = normalize_output("Могу в 18:30. Формат: онлайн", constraints, "ru")
+    assert "18:30" in value
+    assert "Формат, онлайн" in value
+
+
+def test_unplanned_question_is_hard_issue():
+    request = _request()
+    current_plan = plan(request)
+    constraints = default_constraints(request, current_plan)
+    issues = validate_output("Понял) А что еще нужно?", request, current_plan, constraints)
+    assert any(issue.code == "unplanned_question" and issue.hard for issue in issues)

@@ -60,6 +60,14 @@ class PolicyRegistry:
     message_types: dict[MessageType, str] = field(
         default_factory=lambda: dict(_DEFAULT_MESSAGE_TYPES)
     )
+    languages: dict[str, str] = field(
+        default_factory=lambda: {
+            "ru": "Write in Russian.",
+            "en": "Write in English.",
+            "es": "Write in Spanish.",
+            "zh": "Write in Chinese.",
+        }
+    )
 
     def register_domain(self, name: str, policy: str) -> None:
         self.domains[name] = policy
@@ -70,10 +78,18 @@ class PolicyRegistry:
     def register_message_type(self, message_type: MessageType | str, policy: str) -> None:
         self.message_types[MessageType(message_type)] = policy
 
+    def register_language(self, language: str, policy: str) -> None:
+        self.languages[language.lower()] = policy
+
 
 def default_constraints(request: CommunicationRequest, plan: Plan) -> StyleConstraints:
-    constraints = request.constraints or StyleConstraints()
-    constraints = replace(constraints, max_chars=plan.max_chars)
+    if request.constraints is None:
+        constraints = replace(StyleConstraints(), max_chars=plan.max_chars)
+    else:
+        constraints = replace(
+            request.constraints,
+            max_chars=min(request.constraints.max_chars, plan.max_chars),
+        )
     if request.language.lower().startswith("ru") and request.channel in {
         "profi",
         "repetitor",
@@ -100,6 +116,10 @@ def render_policy(
         registry.domains.get(request.domain, registry.domains["generic"]),
         registry.channels.get(request.channel, registry.channels["generic"]),
         registry.message_types[message_type],
+        registry.languages.get(
+            request.language.lower(),
+            f"Write in the language identified by code {request.language}.",
+        ),
         _ACTION[plan.action.value],
         f"Target length is {plan.target_length.value}. Hard character budget is {plan.max_chars}.",
         f"Question allowed by plan is {'yes' if plan.ask_question else 'no'}.",

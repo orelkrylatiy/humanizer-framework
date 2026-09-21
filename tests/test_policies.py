@@ -13,3 +13,18 @@ def test_custom_channel_policy_can_be_registered_without_forking():
     )
     package = framework.prepare(request)
     assert "compact custom marketplace" in package.system
+
+
+def test_language_policy_is_explicit_and_extensible():
+    policies = PolicyRegistry()
+    policies.register_language("de", "Write in German.")
+    framework = CommunicationFramework(policies=policies)
+    request = tutoring_request(
+        channel="profi",
+        message_type="outreach",
+        profile="german",
+        conversation=[],
+        language="de",
+    )
+    package = framework.prepare(request)
+    assert "Write in German." in package.system

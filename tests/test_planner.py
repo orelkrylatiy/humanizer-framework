@@ -38,3 +38,15 @@ def test_outreach_has_larger_budget():
     result = plan(request)
     assert result.action == "pitch"
     assert result.max_chars == 420
+
+
+def test_duration_question_is_not_misclassified_as_scheduling():
+    request = tutoring_request(
+        channel="profi",
+        message_type="chat_reply",
+        profile="informatics",
+        conversation=[Message("client", "Сколько времени нужно на подготовку?")],
+    )
+    result = plan(request)
+    assert result.action == "answer"
+    assert result.stage == "discovery"

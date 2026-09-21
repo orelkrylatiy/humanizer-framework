@@ -23,3 +23,22 @@ def test_prepare_uses_only_limited_voice_examples_and_history():
     assert "example 3" not in joined
     assert "message 19" in joined
     assert "message 0" not in joined
+
+
+def test_non_provider_roles_are_normalized_before_model_call():
+    request = tutoring_request(
+        channel="profi",
+        message_type="chat_reply",
+        profile="informatics",
+        conversation=[
+            Message("client", "Нужна помощь"),
+            Message("seller", "Да, могу помочь"),
+            Message("human", "А с программированием?"),
+        ],
+    )
+    package = CommunicationFramework().prepare(request)
+    roles = [m["role"] for m in package.messages]
+    assert "client" not in roles
+    assert "seller" not in roles
+    assert "human" not in roles
+    assert "assistant" in roles

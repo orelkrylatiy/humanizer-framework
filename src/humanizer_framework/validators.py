@@ -33,6 +33,15 @@ _CTA_MARKERS = (
 )
 
 
+def _replace_stylistic_colons(text: str) -> str:
+    # Keep time separators and URL schemes intact. Only prose colons are style-normalized.
+    return re.sub(r"(?<!\d):(?!\d|//)", ",", text)
+
+
+def _has_stylistic_colon(text: str) -> bool:
+    return re.search(r"(?<!\d):(?!\d|//)", text) is not None
+
+
 def normalize_output(text: str, constraints: StyleConstraints, language: str) -> str:
     value = text.strip()
     if constraints.replace_yo and language.lower().startswith("ru"):
@@ -40,7 +49,7 @@ def normalize_output(text: str, constraints: StyleConstraints, language: str) ->
     if constraints.forbid_em_dash:
         value = value.replace("—", "-").replace("–", "-")
     if constraints.forbid_colon:
-        value = value.replace(":", ",")
+        value = _replace_stylistic_colons(value)
     value = re.sub(r"[ \t]+\n", "\n", value)
     value = re.sub(r" {2,}", " ", value)
     return value.strip()
@@ -83,11 +92,17 @@ def validate_output(
     if text.count("?") > constraints.max_questions:
         issues.append(ValidationIssue("too_many_questions", "too many questions", hard=True))
     if not plan.ask_question and "?" in text:
-        issues.append(ValidationIssue("unplanned_question", "planner did not request a question"))
+        issues.append(
+            ValidationIssue(
+                "unplanned_question",
+                "planner did not request a question",
+                hard=True,
+            )
+        )
     if constraints.forbid_em_dash and ("—" in text or "–" in text):
         issues.append(ValidationIssue("forbidden_dash", "contains a forbidden long dash", hard=True))
-    if constraints.forbid_colon and ":" in text:
-        issues.append(ValidationIssue("forbidden_colon", "contains a forbidden colon", hard=True))
+    if constraints.forbid_colon and _has_stylistic_colon(text):
+        issues.append(ValidationIssue("forbidden_colon", "contains a forbidden prose colon", hard=True))
     if constraints.replace_yo and request.language.lower().startswith("ru") and re.search(r"[ёЁ]", text):
         issues.append(ValidationIssue("yo_not_normalized", "contains yo character", hard=True))
     if any(marker in lower for marker in _CHATBOT_RESIDUE):
@@ -109,6 +124,17 @@ def validate_output(
                 "missing_client_name",
                 "known client name is missing from first tutoring outreach",
                 hard=True,
+            )
+        )
+    if (
+        str(request.message_type) == "outreach"
+        and client_name
+        and lower.count(client_name.lower()) > 1
+    ):
+        issues.append(
+            ValidationIssue(
+                "repeated_client_name",
+                "known client name is repeated in first outreach",
             )
         )
     if (

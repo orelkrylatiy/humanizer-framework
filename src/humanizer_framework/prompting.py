@@ -10,9 +10,18 @@ _MAX_HISTORY_CHARS = 5000
 _MAX_CONTEXT_CHARS = 3500
 
 
+def _provider_role(role: str) -> str:
+    normalized = role.lower()
+    if normalized in {"assistant", "seller", "agent", "bot"}:
+        return "assistant"
+    if normalized == "system":
+        return "system"
+    return "user"
+
+
 def _trim_history(request: CommunicationRequest) -> list[dict[str, str]]:
     items = request.conversation[-_MAX_HISTORY_MESSAGES:]
-    out = [{"role": m.role, "content": m.content} for m in items]
+    out = [{"role": _provider_role(m.role), "content": m.content} for m in items]
     total = 0
     kept: list[dict[str, str]] = []
     for item in reversed(out):

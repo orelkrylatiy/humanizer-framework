@@ -13,8 +13,10 @@ from .models import (
 )
 
 _SCHEDULING_RE = re.compile(
-    r"\b(когда|во сколько|время|сегодня|завтра|понедельник|вторник|сред[ау]|четверг|"
-    r"пятниц|суббот|воскрес|schedule|when|time|tomorrow|today)\b",
+    r"(когда\s+(?:вам\s+)?удобно|во\s+сколько|можно\s+(?:сегодня|завтра)|"
+    r"(?:сегодня|завтра)\s+(?:в|после|до)|(?:понедельник|вторник|сред[ау]|четверг|"
+    r"пятниц[ау]|суббот[ау]|воскресень[ея])\s+(?:в|после|до)|\bв\s+\d{1,2}(?::\d{2})?\b|"
+    r"\b(schedule|availability|available|tomorrow\s+at|today\s+at|when\s+are\s+you\s+available)\b)",
     re.IGNORECASE,
 )
 _OBJECTION_RE = re.compile(
