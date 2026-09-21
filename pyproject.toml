@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "humanizer-framework"
+version = "0.1.0"
+description = "A reusable communication framework for human-like LLM messaging across marketplaces, job boards and messengers."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "humanizer-framework contributors" }]
+dependencies = []
+
+[project.optional-dependencies]
+llm = ["litellm>=1.80"]
+dev = ["pytest>=8", "ruff>=0.8"]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F"]
+ignore = ["E501"]

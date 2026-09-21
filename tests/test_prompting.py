@@ -1,0 +1,25 @@
+from humanizer_framework import Message, MessageType, VoiceProfile, tutoring_request
+from humanizer_framework.framework import CommunicationFramework
+
+
+def test_prepare_uses_only_limited_voice_examples_and_history():
+    voice = VoiceProfile(
+        id="tutor",
+        examples=[f"example {i}" for i in range(10)],
+    )
+    history = [Message("user", f"message {i}") for i in range(20)]
+    request = tutoring_request(
+        channel="profi",
+        message_type=MessageType.CHAT_REPLY,
+        profile="informatics",
+        conversation=history,
+        voice=voice,
+        context={"client_name": "Светлана"},
+    )
+    package = CommunicationFramework().prepare(request)
+    joined = "\n".join(m["content"] for m in package.messages)
+    assert "example 0" in joined
+    assert "example 2" in joined
+    assert "example 3" not in joined
+    assert "message 19" in joined
+    assert "message 0" not in joined

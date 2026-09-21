@@ -1,0 +1,5 @@
+strict = false
+
+[provider]
+kind = "litellm"
+model = "zai/glm-4.7"
