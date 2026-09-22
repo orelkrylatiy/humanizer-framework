@@ -1,3 +1,5 @@
+import pytest
+
 from humanizer_framework.config import ProviderConfig, provider_from_config
 from humanizer_framework.providers import ClaudeCLIProvider, CodexCLIProvider, LiteLLMProvider
 
@@ -13,3 +15,8 @@ def test_provider_specs_are_lazy_and_constructible():
 def test_provider_factory_supports_glm_via_litellm():
     provider = provider_from_config(ProviderConfig(kind="litellm", model="zai/glm-4.7"))
     assert isinstance(provider, LiteLLMProvider)
+
+
+def test_litellm_reserved_fields_cannot_be_overridden():
+    with pytest.raises(ValueError):
+        LiteLLMProvider("some-model", kwargs={"messages": []})

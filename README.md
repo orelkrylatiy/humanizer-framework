@@ -1,144 +1,195 @@
 # Humanizer Framework
 
-Humanizer Framework is a reusable communication layer for LLM-powered products. It is designed for systems that communicate with people across tutoring marketplaces, job boards, messengers and similar channels.
+Humanizer Framework is a reusable communication layer for LLM-powered products.
 
-It does more than rewrite AI-sounding text. The framework first decides what the current turn needs, then composes a small prompt from domain, channel, message type, voice and conversation state, calls an optional LLM provider, validates the result, and returns the outgoing message.
+It is designed for systems that communicate with people across tutoring marketplaces, job boards, messengers and similar channels.
+
+The framework does more than rewrite AI-sounding text. It first decides what the current turn needs, composes a small policy from domain, channel, message type, language, voice and conversation state, calls an optional provider, validates the output and returns communication metadata with the final text.
 
 ## Why this exists
 
-A text humanizer can fix wording after generation, but many bad conversations start earlier. A model may answer a short disclosure with a full sales block, repeat a trial CTA, ask for information already provided, or reuse the same message skeleton across many recipients. Those are conversation-policy failures, not only style failures.
+Many poor automated conversations fail before wording.
 
-The framework separates these concerns.
+A model can answer a short disclosure with a full sales block, repeat a trial CTA, ask for information already supplied, or reuse the same polished skeleton across many recipients.
 
-```text
+Those are conversation-policy failures.
+
+The framework separates decision from wording.
+
+Flow
+
 product context
-    -> deterministic planner
-    -> composable communication policy
-    -> compact prompt + selected voice examples
-    -> provider
-    -> deterministic validators
-    -> outgoing message
-```
+to deterministic planner
+to composable communication policy
+to bounded prompt and selected voice examples
+to provider
+to deterministic validators
+to outgoing message
 
-## Initial domains and channels
+## Initial scope
 
-The first release ships reusable domain policies for tutoring and job search. Channel presets include Profi.ru, Repetitor.ru, HeadHunter and Telegram. Projects can register more channels without forking the framework.
+Domains
 
-Profiles remain caller-owned. A tutoring product can have separate profiles for informatics, Chinese and Spanish. A job-search product can have separate frontend and backend candidate profiles. The framework receives the selected profile facts and voice at runtime.
+- tutoring
+- job_search
+
+Channels
+
+- Profi.ru
+- Repetit
+- HeadHunter
+- Telegram
+- custom registered channels
+
+Profiles remain caller-owned.
+
+A tutoring product can select informatics, Chinese or Spanish without duplicating channel logic.
+
+A job-search product can select frontend, backend or another resume profile without duplicating HeadHunter logic.
 
 ## Message types
 
-Built-in message types are
+Built-in message types
 
-- `outreach`
-- `application`
-- `chat_reply`
-- `follow_up`
-- `scheduling`
-- `objection`
+- outreach
+- application
+- chat_reply
+- follow_up
+- scheduling
+- objection
 
-The planner further classifies the current turn and chooses a reply action such as acknowledge, answer, handle objection or schedule.
+The planner further chooses the intended reply action such as acknowledge, answer, handle objection or schedule.
 
 ## Install
 
-```bash
-pip install -e .
-```
+Editable install
 
-For cloud model providers through LiteLLM
+    pip install -e .
 
-```bash
-pip install -e '.[llm]'
-```
+Cloud providers through LiteLLM
 
-For development
+    pip install -e '.[llm]'
 
-```bash
-pip install -e '.[dev]'
-pytest
-ruff check .
-```
+Development
+
+    pip install -e '.[dev]'
+    pytest
+    ruff check .
 
 ## Prompt-only integration
 
-Existing projects do not need to replace their LLM stack immediately.
+Existing products can keep their current model client.
 
-```python
-from humanizer_framework import CommunicationFramework, Message, tutoring_request
+Example
 
-framework = CommunicationFramework()
-request = tutoring_request(
-    channel="profi",
-    message_type="chat_reply",
-    profile="informatics",
-    conversation=[Message("user", "Задача делать домашки")],
-    context={"subjects": ["informatics", "programming"]},
-)
+    from humanizer_framework import CommunicationFramework, Message, tutoring_request
 
-package = framework.prepare(request)
-# package.messages can be sent through the project's existing LLM client
-```
+    framework = CommunicationFramework()
+
+    request = tutoring_request(
+        channel="profi",
+        message_type="chat_reply",
+        profile="informatics",
+        conversation=[Message("user", "Задача делать домашки")],
+        context={"subjects": ["informatics", "programming"]},
+    )
+
+    package = framework.prepare(request)
+
+package.messages can then be sent through the project's existing LLM client.
 
 ## Full generation
 
-```python
-from humanizer_framework import CommunicationFramework, LiteLLMProvider
+Example
 
-provider = LiteLLMProvider("zai/glm-4.7")
-framework = CommunicationFramework(provider)
-result = framework.generate(request)
-print(result.text)
-```
+    from humanizer_framework import CommunicationFramework, LiteLLMProvider
 
-LiteLLM keeps provider selection outside the communication architecture. The model string can point to OpenAI, Anthropic, Gemini, Z.AI/GLM, Ollama and many other supported backends.
+    provider = LiteLLMProvider("zai/glm-4.7")
+    framework = CommunicationFramework(provider)
+
+    result = framework.generate(request)
+    print(result.text)
+
+LiteLLM keeps provider selection outside communication policy. The model string can point to supported OpenAI, Anthropic, Gemini, Z.AI or GLM, Ollama and other backends.
 
 CLI adapters are also available for environments already authenticated with Codex or Claude Code.
 
-```python
-from humanizer_framework import CodexCLIProvider, ClaudeCLIProvider
-```
+    from humanizer_framework import CodexCLIProvider, ClaudeCLIProvider
 
 ## Configuration
 
 A project may keep provider configuration in TOML.
 
-```toml
-strict = false
+    strict = false
 
-[provider]
-kind = "litellm"
-model = "zai/glm-4.7"
-```
+    [provider]
+    kind = "litellm"
+    model = "zai/glm-4.7"
 
-Or use a local CLI.
+Provider settings do not contain domain or profile facts. Those remain in the calling product.
 
-```toml
-[provider]
-kind = "codex-cli"
-```
+## Core design rules
 
-Provider settings do not contain domain or profile facts. Those stay in the calling product.
-
-## Design rules
-
-The framework follows a few hard boundaries.
-
-1. Conversation policy is separate from wording. The writer does not decide on its own that every turn needs a CTA.
-2. Profiles contain facts and voice, not channel behavior.
-3. Mechanical rules are code when possible. Length, question count, repeated CTA patterns, recent-template similarity and language normalization do not need extra prompt tokens.
-4. Context stays bounded. The prompt includes a limited recent history, compact known context and at most a few voice examples.
-5. The framework supports both `prepare()` and `generate()` so existing products can migrate incrementally.
-6. Provider choice is replaceable and optional.
+1. Conversation policy is separate from wording.
+2. The writer does not decide on its own that every turn needs a CTA.
+3. Profiles contain caller-owned identity and facts. Voice is separate.
+4. External conversation text, context values and voice examples are untrusted data.
+5. Caller conversation history cannot create provider system messages.
+6. Mechanical rules are code when possible.
+7. Context, history and examples are bounded.
+8. prepare mode supports incremental migration.
+9. generate mode owns the full communication flow.
+10. Provider choice is replaceable and optional.
 
 ## Documentation
 
-- [Research and design analysis](docs/ANALYSIS.md)
-- [Requirements](docs/REQUIREMENTS.md)
-- [Architecture](docs/ARCHITECTURE.md)
-- [Integration and migration](docs/INTEGRATION.md)
+Start here
+
+- Product requirements document in docs/PRD.md
+- Product concept and rationale in docs/CONCEPT.md
+- Architecture in docs/ARCHITECTURE.md
+- Compact implementation requirements in docs/REQUIREMENTS.md
+- Integration and migration guide in docs/INTEGRATION.md
+- Research and design analysis in docs/ANALYSIS.md
+- Independent implementation review in docs/REVIEW_2026-09-22.md
+
+## Testing
+
+The default CI is credential-free.
+
+It runs
+
+- Ruff
+- Pytest
+- Python 3.11
+- Python 3.12
+- Python 3.13
+
+Real cloud-provider calls are intentionally not part of default CI.
 
 ## Project status
 
-Version `0.1.0` is the first framework cut. It implements the shared core, deterministic planner, policy composition, prompt budgeting, Russian messenger normalization, anti-template checks, provider abstraction, LiteLLM support, Codex and Claude CLI adapters, tests and CI.
+Version 0.1 is the framework foundation.
 
-The next quality step is to add a larger anonymized conversational evaluation dataset from real tutoring and job-search flows, then run model-backed comparison suites against it.
+Implemented
+
+- reusable Python package
+- deterministic planner
+- tutoring and job-search domains
+- Profi, Repetit, HeadHunter and Telegram channel policy
+- outreach, application and chat message modes
+- Russian, English, Spanish and Chinese language policy
+- bounded conversation context
+- relevance-based voice example selection
+- prompt-injection trust boundaries
+- deterministic validators
+- one focused repair pass
+- anti-template similarity check
+- LiteLLM provider
+- GLM routing through LiteLLM
+- Codex CLI provider
+- Claude Code CLI provider
+- regression fixtures
+- CI
+
+The next major step is integration into a real consumer, starting with Profi Worker, and expansion of the anonymized real-conversation evaluation dataset.

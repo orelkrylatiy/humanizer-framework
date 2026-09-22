@@ -87,3 +87,44 @@ def test_unplanned_question_is_hard_issue():
     constraints = default_constraints(request, current_plan)
     issues = validate_output("Понял) А что еще нужно?", request, current_plan, constraints)
     assert any(issue.code == "unplanned_question" and issue.hard for issue in issues)
+
+
+def test_fullwidth_question_mark_is_counted():
+    request = tutoring_request(
+        channel="telegram",
+        message_type="chat_reply",
+        profile="chinese",
+        conversation=[Message("client", "好的")],
+        language="zh",
+    )
+    current_plan = plan(request)
+    constraints = default_constraints(request, current_plan)
+    issues = validate_output("还需要什么？", request, current_plan, constraints)
+    assert any(issue.code == "unplanned_question" for issue in issues)
+
+
+def test_empty_output_is_hard_issue():
+    request = _request()
+    current_plan = plan(request)
+    constraints = default_constraints(request, current_plan)
+    issues = validate_output("", request, current_plan, constraints)
+    assert len(issues) == 1
+    assert issues[0].code == "empty_message"
+    assert issues[0].hard
+
+
+def test_bot_role_participates_in_similarity_check():
+    request = _request()
+    request.conversation.insert(
+        0,
+        Message("bot", "Понял, тогда можно разбирать домашки и закрывать пробелы по ходу."),
+    )
+    current_plan = plan(request)
+    constraints = default_constraints(request, current_plan)
+    issues = validate_output(
+        "Понял, тогда можно разбирать домашки и закрывать пробелы по ходу.",
+        request,
+        current_plan,
+        constraints,
+    )
+    assert any(issue.code == "template_similarity" for issue in issues)

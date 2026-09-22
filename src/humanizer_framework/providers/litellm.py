@@ -3,20 +3,24 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+_RESERVED_KWARGS = {"model", "messages", "temperature", "max_tokens"}
+
 
 @dataclass(slots=True)
 class LiteLLMProvider:
-    """Optional provider backed by LiteLLM.
-
-    Examples of model strings include OpenAI, Anthropic, Gemini, Ollama and
-    Z.AI/GLM models such as zai/glm-4.7. The framework deliberately does
-    not hardcode a model catalog because provider model names change faster
-    than the communication API.
-    """
+    """Optional provider backed by LiteLLM."""
 
     model: str
     kwargs: dict[str, Any] = field(default_factory=dict)
     name: str = "litellm"
+
+    def __post_init__(self) -> None:
+        conflicts = sorted(_RESERVED_KWARGS & self.kwargs.keys())
+        if conflicts:
+            joined = ", ".join(conflicts)
+            raise ValueError(
+                f"LiteLLMProvider kwargs cannot override framework-owned fields: {joined}"
+            )
 
     def generate(
         self,

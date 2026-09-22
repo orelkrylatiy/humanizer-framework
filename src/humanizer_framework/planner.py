@@ -12,29 +12,67 @@ from .models import (
     TargetLength,
 )
 
-_SCHEDULING_RE = re.compile(
-    r"(когда\s+(?:вам\s+)?удобно|во\s+сколько|можно\s+(?:сегодня|завтра)|"
-    r"(?:сегодня|завтра)\s+(?:в|после|до)|(?:понедельник|вторник|сред[ау]|четверг|"
-    r"пятниц[ау]|суббот[ау]|воскресень[ея])\s+(?:в|после|до)|\bв\s+\d{1,2}(?::\d{2})?\b|"
-    r"\b(schedule|availability|available|tomorrow\s+at|today\s+at|when\s+are\s+you\s+available)\b)",
-    re.IGNORECASE,
-)
-_OBJECTION_RE = re.compile(
-    r"\b(дорого|не уверен|не уверена|сомнева|не подходит|не хочу|слишком|expensive|"
-    r"not sure|doesn.t work|too much)\b",
-    re.IGNORECASE,
-)
-_AGREEMENT_RE = re.compile(
-    r"^\s*(да|давайте|ок|окей|хорошо|согласен|согласна|подходит|yes|ok|okay|sounds good)\b",
-    re.IGNORECASE,
-)
+_SCHEDULING_PATTERNS = {
+    "default": re.compile(
+        r"(когда\s+(?:вам\s+)?удобно|во\s+сколько|можно\s+(?:сегодня|завтра)|"
+        r"(?:сегодня|завтра)\s+(?:в|после|до)|(?:понедельник|вторник|сред[ау]|четверг|"
+        r"пятниц[ау]|суббот[ау]|воскресень[ея])\s+(?:в|после|до)|\bв\s+\d{1,2}(?::\d{2})?\b|"
+        r"\b(schedule|availability|available|tomorrow\s+at|today\s+at|when\s+are\s+you\s+available)\b)",
+        re.IGNORECASE,
+    ),
+    "es": re.compile(
+        r"(cu[aá]ndo\s+(?:te|le|os)?\s*(?:viene\s+bien|conviene)|a\s+qu[eé]\s+hora|"
+        r"disponibilidad|(?:hoy|mañana)\s+(?:a\s+las?|despu[eé]s\s+de|antes\s+de))",
+        re.IGNORECASE,
+    ),
+    "zh": re.compile(r"(什么时候|几点|今天.{0,8}点|明天.{0,8}点|哪天方便|什么时间方便)"),
+}
+
+_OBJECTION_PATTERNS = {
+    "default": re.compile(
+        r"\b(дорого|не уверен|не уверена|сомнева|не подходит|не хочу|слишком|expensive|"
+        r"not sure|doesn.t work|too much)\b",
+        re.IGNORECASE,
+    ),
+    "es": re.compile(
+        r"\b(caro|cara|demasiado|no\s+estoy\s+segur[oa]|no\s+me\s+conviene|no\s+quiero)\b",
+        re.IGNORECASE,
+    ),
+    "zh": re.compile(r"(太贵|不确定|不太确定|不合适|不想|太多)"),
+}
+
+_AGREEMENT_PATTERNS = {
+    "default": re.compile(
+        r"^\s*(да|давайте|ок|окей|хорошо|согласен|согласна|подходит|yes|ok|okay|sounds good)\b",
+        re.IGNORECASE,
+    ),
+    "es": re.compile(r"^\s*(s[ií]|vale|de\s+acuerdo|perfecto|perfecta|me\s+parece\s+bien)\b", re.IGNORECASE),
+    "zh": re.compile(r"^\s*(好|好的|可以|行|没问题|同意)"),
+}
 
 
 def _latest_user_text(request: CommunicationRequest) -> str:
     for message in reversed(request.conversation):
-        if message.role in {"user", "client", "human"}:
+        if message.role.lower() in {"user", "client", "human"}:
             return message.content.strip()
     return ""
+
+
+def _language_key(language: str) -> str:
+    return language.lower().split("-", 1)[0].split("_", 1)[0]
+
+
+def _matches(patterns: dict[str, re.Pattern[str]], text: str, language: str) -> bool:
+    lang = _language_key(language)
+    return bool(patterns["default"].search(text) or patterns.get(lang, re.compile(r"(?!x)x")).search(text))
+
+
+def _is_question(text: str, language: str) -> bool:
+    if "?" in text or "？" in text:
+        return True
+    if _language_key(language) == "zh":
+        return bool(re.search(r"(吗|么|呢)\s*[。！!]?\s*$", text))
+    return False
 
 
 def _target_length(text: str, message_type: MessageType) -> TargetLength:
@@ -88,7 +126,9 @@ def plan(request: CommunicationRequest) -> Plan:
             rationale="follow-up should be easy to ignore and easy to answer",
         )
 
-    if message_type == MessageType.SCHEDULING or _SCHEDULING_RE.search(latest):
+    if message_type == MessageType.SCHEDULING or _matches(
+        _SCHEDULING_PATTERNS, latest, request.language
+    ):
         return Plan(
             act=ConversationAct.SCHEDULING,
             stage=ConversationStage.SCHEDULING,
@@ -100,7 +140,9 @@ def plan(request: CommunicationRequest) -> Plan:
             rationale="the user is discussing timing or logistics",
         )
 
-    if message_type == MessageType.OBJECTION or _OBJECTION_RE.search(latest):
+    if message_type == MessageType.OBJECTION or _matches(
+        _OBJECTION_PATTERNS, latest, request.language
+    ):
         return Plan(
             act=ConversationAct.OBJECTION,
             stage=ConversationStage.DISCOVERY,
@@ -112,7 +154,7 @@ def plan(request: CommunicationRequest) -> Plan:
             rationale="address the specific concern before advancing the conversation",
         )
 
-    if latest and "?" in latest:
+    if latest and _is_question(latest, request.language):
         return Plan(
             act=ConversationAct.QUESTION,
             stage=ConversationStage.DISCOVERY,
@@ -124,7 +166,7 @@ def plan(request: CommunicationRequest) -> Plan:
             rationale="answer the current question before adding any next step",
         )
 
-    if _AGREEMENT_RE.search(latest):
+    if _matches(_AGREEMENT_PATTERNS, latest, request.language):
         return Plan(
             act=ConversationAct.AGREEMENT,
             stage=ConversationStage.READY,

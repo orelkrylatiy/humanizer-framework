@@ -30,7 +30,7 @@ def test_question_is_answered_without_forced_next_step():
 
 def test_outreach_has_larger_budget():
     request = tutoring_request(
-        channel="repetitor",
+        channel="repetit",
         message_type="outreach",
         profile="chinese",
         conversation=[],
@@ -50,3 +50,40 @@ def test_duration_question_is_not_misclassified_as_scheduling():
     result = plan(request)
     assert result.action == "answer"
     assert result.stage == "discovery"
+
+
+def test_chinese_fullwidth_question_is_detected():
+    request = tutoring_request(
+        channel="telegram",
+        message_type="chat_reply",
+        profile="chinese",
+        conversation=[Message("client", "你也教编程吗？")],
+        language="zh",
+    )
+    result = plan(request)
+    assert result.action == "answer"
+    assert result.allow_cta is False
+
+
+def test_spanish_scheduling_is_detected():
+    request = tutoring_request(
+        channel="telegram",
+        message_type="chat_reply",
+        profile="spanish",
+        conversation=[Message("client", "¿Cuándo te viene bien?")],
+        language="es",
+    )
+    result = plan(request)
+    assert result.action == "schedule"
+
+
+def test_chinese_objection_is_detected():
+    request = tutoring_request(
+        channel="telegram",
+        message_type="chat_reply",
+        profile="chinese",
+        conversation=[Message("client", "这个价格太贵了")],
+        language="zh",
+    )
+    result = plan(request)
+    assert result.action == "handle_objection"

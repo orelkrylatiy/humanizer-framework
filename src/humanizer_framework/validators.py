@@ -65,11 +65,16 @@ def _skeleton(text: str) -> str:
 
 
 def _recent_assistant_messages(request: CommunicationRequest) -> list[str]:
+    assistant_roles = {"assistant", "seller", "agent", "bot"}
     return [
         m.content
         for m in request.conversation[-20:]
-        if m.role in {"assistant", "seller", "agent"}
+        if m.role.lower() in assistant_roles
     ]
+
+
+def _question_count(text: str) -> int:
+    return text.count("?") + text.count("？")
 
 
 def validate_output(
@@ -81,6 +86,10 @@ def validate_output(
     issues: list[ValidationIssue] = []
     lower = text.lower()
 
+    if not text.strip():
+        issues.append(ValidationIssue("empty_message", "generated message is empty", hard=True))
+        return issues
+
     if len(text) > constraints.max_chars:
         issues.append(
             ValidationIssue(
@@ -89,9 +98,10 @@ def validate_output(
                 hard=True,
             )
         )
-    if text.count("?") > constraints.max_questions:
+    questions = _question_count(text)
+    if questions > constraints.max_questions:
         issues.append(ValidationIssue("too_many_questions", "too many questions", hard=True))
-    if not plan.ask_question and "?" in text:
+    if not plan.ask_question and questions:
         issues.append(
             ValidationIssue(
                 "unplanned_question",
@@ -151,8 +161,12 @@ def validate_output(
 
     current = _skeleton(text)
     for previous in _recent_assistant_messages(request):
-        ratio = SequenceMatcher(None, current, _skeleton(previous)).ratio()
-        if ratio >= constraints.similarity_threshold and min(len(current), len(_skeleton(previous))) >= 30:
+        previous_skeleton = _skeleton(previous)
+        ratio = SequenceMatcher(None, current, previous_skeleton).ratio()
+        if (
+            ratio >= constraints.similarity_threshold
+            and min(len(current), len(previous_skeleton)) >= 30
+        ):
             issues.append(
                 ValidationIssue(
                     "template_similarity",

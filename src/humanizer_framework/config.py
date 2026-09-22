@@ -25,11 +25,19 @@ class FrameworkConfig:
 def load_config(path: str | Path) -> FrameworkConfig:
     data = tomllib.loads(Path(path).read_text(encoding="utf-8"))
     provider = data.get("provider", {})
+    if not isinstance(provider, dict):
+        raise ValueError("[provider] must be a TOML table")
+    options = provider.get("options", {})
+    if not isinstance(options, dict):
+        raise ValueError("[provider.options] must be a TOML table")
+    model = provider.get("model")
+    if model is not None and not isinstance(model, str):
+        raise ValueError("provider.model must be a string")
     return FrameworkConfig(
         provider=ProviderConfig(
             kind=str(provider.get("kind", "litellm")),
-            model=provider.get("model"),
-            options=dict(provider.get("options", {})),
+            model=model,
+            options=dict(options),
         ),
         strict=bool(data.get("strict", False)),
     )

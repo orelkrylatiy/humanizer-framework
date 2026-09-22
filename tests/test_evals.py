@@ -14,6 +14,7 @@ def test_planner_regression_fixtures():
             domain=case["domain"],
             message_type=case["message_type"],
             profile=case["profile"],
+            language=case.get("language", "ru"),
             conversation=[Message(**m) for m in case.get("conversation", [])],
             context=case.get("context", {}),
         )
