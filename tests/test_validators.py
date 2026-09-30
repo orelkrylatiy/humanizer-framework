@@ -1,4 +1,4 @@
-from humanizer_framework import Message, MessageType, tutoring_request
+from humanizer_framework import Message, MessageType, job_search_request, tutoring_request
 from humanizer_framework.planner import plan
 from humanizer_framework.policies import default_constraints
 from humanizer_framework.validators import normalize_output, validate_output
@@ -173,3 +173,39 @@ def test_bot_role_participates_in_similarity_check():
         constraints,
     )
     assert any(issue.code == "template_similarity" for issue in issues)
+
+
+def _hh_request():
+    return job_search_request(
+        channel="hh",
+        message_type=MessageType.CHAT_REPLY,
+        profile="frontend",
+        conversation=[Message("user", "Когда удобно созвониться?")],
+    )
+
+
+def test_smiley_is_hard_issue_for_job_search():
+    request = _hh_request()
+    current_plan = plan(request)
+    constraints = default_constraints(request, current_plan)
+    for text in ("Завтра после 15:00:)", "Хорошо))", "Отлично, спасибо)", "✓ Готов"):
+        issues = validate_output(text, request, current_plan, constraints)
+        assert any(issue.code == "forbidden_smiley" and issue.hard for issue in issues), text
+
+
+def test_bare_paren_smiley_detected_but_enumeration_not():
+    from humanizer_framework.validators import _has_smiley
+
+    assert _has_smiley("Хорошо)")
+    assert _has_smiley("Понял :)")
+    assert not _has_smiley("Есть опыт (финтех, торговые терминалы).")
+    assert not _has_smiley("1) опыт 2) стек 3) сроки")
+
+
+def test_smiley_allowed_for_informal_russian_channels():
+    request = _request()
+    current_plan = plan(request)
+    constraints = default_constraints(request, current_plan)
+    assert constraints.forbid_smileys is False
+    issues = validate_output("Понял, задача делать домашки :)", request, current_plan, constraints)
+    assert not any(issue.code == "forbidden_smiley" for issue in issues)

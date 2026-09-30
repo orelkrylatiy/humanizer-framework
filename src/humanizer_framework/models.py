@@ -70,6 +70,7 @@ class StyleConstraints:
     max_questions: int = 1
     forbid_em_dash: bool = True
     forbid_colon: bool = False
+    forbid_smileys: bool = True
     replace_yo: bool = True
     similarity_threshold: float = 0.86
     max_voice_examples: int = 3

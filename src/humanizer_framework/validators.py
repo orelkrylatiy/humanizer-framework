@@ -34,6 +34,27 @@ _CTA_MARKERS = (
 
 
 _SMILEY_COLON_RE = re.compile(r":[-]?[()DP]|(?<=\():")
+_EMOJI_RE = re.compile("[\U0001f000-\U0001faff\u2600-\u27bf\u2b00-\u2bff\ufe0f]")
+_CLASSIC_SMILEY_RE = re.compile(r"[:;=8xX][-'^o]*[)(DPp]|[(][-'^o]*[:;=]")
+
+
+def _has_smiley(text: str) -> bool:
+    if _EMOJI_RE.search(text) or _CLASSIC_SMILEY_RE.search(text):
+        return True
+    # Bare Russian ")" or "))" emoticons: any ")" with no matching "(" before
+    # it. A digit right before the paren means enumeration ("8)"), not a smiley.
+    depth = 0
+    for index, char in enumerate(text):
+        if char == "(":
+            depth += 1
+        elif char == ")":
+            if depth == 0:
+                previous = text[:index].rstrip()
+                if not previous.endswith(tuple("0123456789")):
+                    return True
+            else:
+                depth -= 1
+    return False
 
 
 def _replace_stylistic_colons(text: str) -> str:
@@ -134,6 +155,8 @@ def validate_output(
         issues.append(
             ValidationIssue("forbidden_colon", "contains a forbidden prose colon", hard=True)
         )
+    if constraints.forbid_smileys and _has_smiley(text):
+        issues.append(ValidationIssue("forbidden_smiley", "contains a smiley or emoji", hard=True))
     if (
         constraints.replace_yo
         and request.language.lower().startswith("ru")

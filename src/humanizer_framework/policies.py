@@ -100,6 +100,7 @@ def default_constraints(request: CommunicationRequest, plan: Plan) -> StyleConst
             constraints,
             forbid_em_dash=True,
             forbid_colon=True,
+            forbid_smileys=False,
             replace_yo=True,
         )
     return constraints
