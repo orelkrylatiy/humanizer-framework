@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from difflib import SequenceMatcher
 
-from .models import CommunicationRequest, Plan, StyleConstraints, ValidationIssue
+from .models import CommunicationRequest, Plan, StyleConstraints, TargetLength, ValidationIssue
 
 _CHATBOT_RESIDUE = (
     "great question",
@@ -96,6 +96,17 @@ def validate_output(
                 "too_long",
                 f"message has {len(text)} characters, budget is {constraints.max_chars}",
                 hard=True,
+            )
+        )
+    # A long-form message far under budget is usually a truncated model answer,
+    # not a human being terse. Chat-length plans are exempt.
+    if plan.target_length in {TargetLength.MEDIUM, TargetLength.LONG} and len(
+        text
+    ) < int(constraints.max_chars * 0.4):
+        issues.append(
+            ValidationIssue(
+                "too_short",
+                f"message has {len(text)} characters, well under the {constraints.max_chars} budget",
             )
         )
     questions = _question_count(text)

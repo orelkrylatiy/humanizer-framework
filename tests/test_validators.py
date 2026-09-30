@@ -103,6 +103,32 @@ def test_fullwidth_question_mark_is_counted():
     assert any(issue.code == "unplanned_question" for issue in issues)
 
 
+def test_truncated_application_is_flagged_as_too_short():
+    request = tutoring_request(
+        channel="hh",
+        message_type="application",
+        profile="frontend",
+        conversation=[],
+    )
+    current_plan = plan(request)
+    constraints = default_constraints(request, current_plan)
+    issues = validate_output(
+        "Пишу по вакансии. Пять лет на React и TypeScript, сейчас делаю торговый",
+        request,
+        current_plan,
+        constraints,
+    )
+    assert any(issue.code == "too_short" and not issue.hard for issue in issues)
+
+
+def test_short_chat_reply_is_not_flagged_as_too_short():
+    request = _request()
+    current_plan = plan(request)
+    constraints = default_constraints(request, current_plan)
+    issues = validate_output("Ок, давайте завтра.", request, current_plan, constraints)
+    assert not any(issue.code == "too_short" for issue in issues)
+
+
 def test_empty_output_is_hard_issue():
     request = _request()
     current_plan = plan(request)
