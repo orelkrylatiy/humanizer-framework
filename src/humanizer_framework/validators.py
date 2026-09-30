@@ -33,13 +33,23 @@ _CTA_MARKERS = (
 )
 
 
+_SMILEY_COLON_RE = re.compile(r":[-]?[()DP]|(?<=\():")
+
+
 def _replace_stylistic_colons(text: str) -> str:
-    # Keep time separators and URL schemes intact. Only prose colons are style-normalized.
-    return re.sub(r"(?<!\d):(?!\d|//)", ",", text)
+    # Keep time separators, URL schemes and text smileys (":)", ":-(", "(:")
+    # intact. Only prose colons are style-normalized.
+    return re.sub(
+        r"(?<!\d):(?!\d|//)",
+        lambda m: ":" if _SMILEY_COLON_RE.match(text, m.start()) else ",",
+        text,
+    )
 
 
 def _has_stylistic_colon(text: str) -> bool:
-    return re.search(r"(?<!\d):(?!\d|//)", text) is not None
+    return any(
+        not _SMILEY_COLON_RE.match(text, m.start()) for m in re.finditer(r"(?<!\d):(?!\d|//)", text)
+    )
 
 
 def normalize_output(text: str, constraints: StyleConstraints, language: str) -> str:

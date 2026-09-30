@@ -81,6 +81,25 @@ def test_time_colon_survives_russian_normalization():
     assert "Формат, онлайн" in value
 
 
+def test_text_smiley_colon_survives_normalization():
+    request = _request()
+    current_plan = plan(request)
+    constraints = default_constraints(request, current_plan)
+    value = normalize_output("Привет:) Формат: онлайн", constraints, "ru")
+    assert "Привет:)" in value
+    assert "Формат, онлайн" in value
+
+
+def test_text_smiley_colon_is_not_forbidden_issue():
+    request = _request()
+    current_plan = plan(request)
+    constraints = default_constraints(request, current_plan)
+    issues = validate_output("Разберёмся:)", request, current_plan, constraints)
+    assert not any(issue.code == "forbidden_colon" for issue in issues)
+    issues = validate_output("Всё по плану: онлайн", request, current_plan, constraints)
+    assert any(issue.code == "forbidden_colon" for issue in issues)
+
+
 def test_unplanned_question_is_hard_issue():
     request = _request()
     current_plan = plan(request)
