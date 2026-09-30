@@ -25,7 +25,7 @@ _DEFAULT_CHANNELS = {
     "profi": "Marketplace chat. Keep the tone personal and compact. First outreach can use short paragraphs. Later replies should usually be one short paragraph.",
     "repetit": "Tutoring marketplace chat. Keep the tone personal and compact. First outreach can use short paragraphs. Later replies should usually be one short paragraph.",
     "repetitor": "Tutoring marketplace chat. Keep the tone personal and compact. First outreach can use short paragraphs. Later replies should usually be one short paragraph.",
-    "hh": "Job-board communication. Applications may be more complete than chat replies. Recruiter replies should stay concise and factual.",
+    "hh": "Job-board communication. Applications may be more complete than chat replies. Recruiter replies should stay concise and factual. No smileys, emoji or bracket emoticons: this is business correspondence with an employer.",
     "telegram": "Messenger conversation. Match the other person's brevity and directness. Avoid formal letter scaffolding unless the user is formal.",
     "generic": "Use the conventions of a short digital conversation.",
 }

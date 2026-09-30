@@ -1,4 +1,5 @@
 from humanizer_framework import CommunicationFramework, Message, PolicyRegistry, tutoring_request
+from humanizer_framework.planner import plan
 
 
 def test_custom_channel_policy_can_be_registered_without_forking():
@@ -28,3 +29,17 @@ def test_language_policy_is_explicit_and_extensible():
     )
     package = framework.prepare(request)
     assert "Write in German." in package.system
+
+
+def test_hh_channel_policy_forbids_smileys():
+    from humanizer_framework import Message, MessageType, job_search_request
+    from humanizer_framework.policies import render_policy
+
+    request = job_search_request(
+        channel="hh",
+        message_type=MessageType.CHAT_REPLY,
+        profile="frontend",
+        conversation=[Message("user", "Когда удобно созвониться?")],
+    )
+    policy = render_policy(request, plan(request))
+    assert "No smileys" in policy
