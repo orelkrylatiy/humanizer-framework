@@ -29,3 +29,6 @@ Humanizer Framework is a communication library. Keep the boundary narrow.
 ## Checks
 
 Run python -m pytest and ruff check .
+
+Pre-commit hook formats staged .py (ruff format + ruff check --fix) before each
+commit. Activate once per clone: `git config core.hooksPath githooks`
