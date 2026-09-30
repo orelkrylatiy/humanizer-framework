@@ -27,7 +27,9 @@ class CommunicationFramework:
 
     def generate(self, request: CommunicationRequest) -> CommunicationResult:
         if self.provider is None:
-            raise RuntimeError("generate() requires a provider. Use prepare() for prompt-only mode.")
+            raise RuntimeError(
+                "generate() requires a provider. Use prepare() for prompt-only mode."
+            )
 
         package = self.prepare(request)
         raw = self.provider.generate(package.messages, max_tokens=400)

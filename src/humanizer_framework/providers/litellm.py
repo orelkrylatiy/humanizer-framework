@@ -32,9 +32,7 @@ class LiteLLMProvider:
         try:
             from litellm import completion
         except ImportError as exc:  # pragma: no cover - environment dependent
-            raise RuntimeError(
-                "LiteLLM is optional. Install humanizer-framework[llm]."
-            ) from exc
+            raise RuntimeError("LiteLLM is optional. Install humanizer-framework[llm].") from exc
 
         response = completion(
             model=self.model,

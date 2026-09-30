@@ -66,11 +66,7 @@ def _skeleton(text: str) -> str:
 
 def _recent_assistant_messages(request: CommunicationRequest) -> list[str]:
     assistant_roles = {"assistant", "seller", "agent", "bot"}
-    return [
-        m.content
-        for m in request.conversation[-20:]
-        if m.role.lower() in assistant_roles
-    ]
+    return [m.content for m in request.conversation[-20:] if m.role.lower() in assistant_roles]
 
 
 def _question_count(text: str) -> int:
@@ -100,9 +96,9 @@ def validate_output(
         )
     # A long-form message far under budget is usually a truncated model answer,
     # not a human being terse. Chat-length plans are exempt.
-    if plan.target_length in {TargetLength.MEDIUM, TargetLength.LONG} and len(
-        text
-    ) < int(constraints.max_chars * 0.4):
+    if plan.target_length in {TargetLength.MEDIUM, TargetLength.LONG} and len(text) < int(
+        constraints.max_chars * 0.4
+    ):
         issues.append(
             ValidationIssue(
                 "too_short",
@@ -121,17 +117,29 @@ def validate_output(
             )
         )
     if constraints.forbid_em_dash and ("—" in text or "–" in text):
-        issues.append(ValidationIssue("forbidden_dash", "contains a forbidden long dash", hard=True))
+        issues.append(
+            ValidationIssue("forbidden_dash", "contains a forbidden long dash", hard=True)
+        )
     if constraints.forbid_colon and _has_stylistic_colon(text):
-        issues.append(ValidationIssue("forbidden_colon", "contains a forbidden prose colon", hard=True))
-    if constraints.replace_yo and request.language.lower().startswith("ru") and re.search(r"[ёЁ]", text):
+        issues.append(
+            ValidationIssue("forbidden_colon", "contains a forbidden prose colon", hard=True)
+        )
+    if (
+        constraints.replace_yo
+        and request.language.lower().startswith("ru")
+        and re.search(r"[ёЁ]", text)
+    ):
         issues.append(ValidationIssue("yo_not_normalized", "contains yo character", hard=True))
     if any(marker in lower for marker in _CHATBOT_RESIDUE):
         issues.append(ValidationIssue("chatbot_residue", "contains a generic chatbot wrapper"))
     if any(marker in lower for marker in _STAGED_OPENERS):
         issues.append(ValidationIssue("staged_opener", "contains a staged opener"))
     if not plan.allow_cta and any(marker in lower for marker in _CTA_MARKERS):
-        issues.append(ValidationIssue("unplanned_cta", "contains a CTA that the planner did not allow", hard=True))
+        issues.append(
+            ValidationIssue(
+                "unplanned_cta", "contains a CTA that the planner did not allow", hard=True
+            )
+        )
 
     client_name = str(request.context.get("client_name", "")).strip()
     if (
@@ -158,11 +166,7 @@ def validate_output(
                 "known client name is repeated in first outreach",
             )
         )
-    if (
-        str(request.message_type) == "outreach"
-        and len(text) >= 180
-        and "\n\n" not in text
-    ):
+    if str(request.message_type) == "outreach" and len(text) >= 180 and "\n\n" not in text:
         issues.append(
             ValidationIssue(
                 "dense_outreach",

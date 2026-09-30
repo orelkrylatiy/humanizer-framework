@@ -163,7 +163,7 @@ def run_humanizer(row):
 
 # --- Метрики стиля ---
 
-_EMOJI_RE = re.compile("[\U0001F300-\U0001FAFF\u2600-\u27BF]")
+_EMOJI_RE = re.compile("[\U0001f300-\U0001faff\u2600-\u27bf]")
 
 
 def style_metrics(text: str, client_name: str) -> dict:
@@ -185,7 +185,12 @@ def style_metrics(text: str, client_name: str) -> dict:
         "emoji": bool(_EMOJI_RE.search(text)),
         "formal_hello": text.startswith(("Здравствуйте", "Добрый")),
         "name": bool(client_name) and client_name.lower() in text.lower(),
-        "trial_pitch": bool(re.search(r"пробн\w+\s+заняти|первое\s+заняти\w*\s+(?:предлага|сдела|провест|как)", text.lower())),
+        "trial_pitch": bool(
+            re.search(
+                r"пробн\w+\s+заняти|первое\s+заняти\w*\s+(?:предлага|сдела|провест|как)",
+                text.lower(),
+            )
+        ),
         "diag": "диагностик" in text.lower(),
     }
 
@@ -203,7 +208,20 @@ def fmt_metrics(m: dict) -> str:
         f"вопросов {m['questions']}",
         f"ИИ-детектор: {m['ai_n']}" + (f" ({'; '.join(m['ai'])})" if m["ai"] else ""),
     ]
-    flags = [k for k in ("em_dash", "colon", "smiley", "emoji", "formal_hello", "name", "trial_pitch", "diag") if m[k]]
+    flags = [
+        k
+        for k in (
+            "em_dash",
+            "colon",
+            "smiley",
+            "emoji",
+            "formal_hello",
+            "name",
+            "trial_pitch",
+            "diag",
+        )
+        if m[k]
+    ]
     bits.append("флаги: " + (", ".join(flags) if flags else "—"))
     return " | ".join(bits)
 
@@ -230,7 +248,12 @@ def main():
         out.append(f"## Заказ {oid} — {(details.get('subject') or '')[:60]}")
         brief = " | ".join(
             str(x)
-            for x in [details.get("description"), details.get("student"), details.get("remote"), details.get("wishes")]
+            for x in [
+                details.get("description"),
+                details.get("student"),
+                details.get("remote"),
+                details.get("wishes"),
+            ]
             if x
         )
         out.append(f"**Заявка:** {brief[:220]}")
@@ -241,7 +264,9 @@ def main():
         sent = (row["draft_text"] or "").strip()
         m0 = style_metrics(sent, client_name)
         all_m["sent"].append(m0)
-        out.append(f"**0. Отправленный отклик воркера (из БД, {row['draft_source']}, вариант {row['prompt_variant']}):**")
+        out.append(
+            f"**0. Отправленный отклик воркера (из БД, {row['draft_source']}, вариант {row['prompt_variant']}):**"
+        )
         out.append(f"> {sent}")
         out.append(f"`{fmt_metrics(m0)}`")
         out.append("")
@@ -319,14 +344,30 @@ def main():
         out.append(f"| {label} | {a0[key]} | {aa[key]} | {ab[key]} |")
     if sims:
         out.append("")
-        out.append(f"Средняя похожесть текстов A и B (скелетная): {round(sum(sims) / len(sims), 2)} — формулировки заметно различаются при одинаковом смысле.")
+        out.append(
+            f"Средняя похожесть текстов A и B (скелетная): {round(sum(sims) / len(sims), 2)} — формулировки заметно различаются при одинаковом смысле."
+        )
 
     OUT_MD.write_text("\n".join(out), encoding="utf-8")
     print(f"\nOK -> {OUT_MD.name}")
-    print("Агрегат: chars", a0["chars"], aa["chars"], ab["chars"],
-          "| ai_n", a0["ai_n"], aa["ai_n"], ab["ai_n"],
-          "| trial%", a0["trial_pct"], aa["trial_pct"], ab["trial_pct"],
-          "| diag%", a0["diag_pct"], aa["diag_pct"], ab["diag_pct"])
+    print(
+        "Агрегат: chars",
+        a0["chars"],
+        aa["chars"],
+        ab["chars"],
+        "| ai_n",
+        a0["ai_n"],
+        aa["ai_n"],
+        ab["ai_n"],
+        "| trial%",
+        a0["trial_pct"],
+        aa["trial_pct"],
+        ab["trial_pct"],
+        "| diag%",
+        a0["diag_pct"],
+        aa["diag_pct"],
+        ab["diag_pct"],
+    )
 
 
 if __name__ == "__main__":

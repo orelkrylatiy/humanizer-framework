@@ -19,7 +19,7 @@ def test_config_loads_provider_table(tmp_path: Path):
     path = tmp_path / "humanizer.toml"
     path.write_text(
         'strict = true\n[provider]\nkind = "litellm"\nmodel = "x"\n'
-        '[provider.options]\ntimeout = 20\n',
+        "[provider.options]\ntimeout = 20\n",
         encoding="utf-8",
     )
     config = load_config(path)

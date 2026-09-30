@@ -9,7 +9,6 @@
 #   E. Мультиязычность (es, zh)
 from __future__ import annotations
 
-import json
 import re
 import sqlite3
 import sys
@@ -60,6 +59,7 @@ class ProfiGlmProvider(Provider):
 
 # --- Голоса (как в эксперименте A/B: примеры — реальные отправленные отклики) ---
 
+
 def _load_voice_examples() -> list[str]:
     try:
         con = sqlite3.connect(PROFI_DB)
@@ -80,7 +80,10 @@ def _load_voice_examples() -> list[str]:
 VOICE_PROF = VoiceProfile(
     id="profi-info",
     description="Репетитор, живой короткий чат-стиль без канцелярита",
-    prefer=["простые живые слова и короткие предложения разной длины", "разговорный тон мессенджера"],
+    prefer=[
+        "простые живые слова и короткие предложения разной длины",
+        "разговорный тон мессенджера",
+    ],
     avoid=[
         "канцелярит и пафос",
         "«не просто X, а Y», риторические тройки, списки, эмодзи",
@@ -117,15 +120,57 @@ RULES_TG = [
 
 MATRIX = [
     # id, language, message_type, latest user text, expected (action, ask_q, cta, max_chars or None)
-    ("profi-disclosure", "ru", "chat_reply", "Задача делать домашки", ("acknowledge", False, False, 180)),
-    ("profi-question", "ru", "chat_reply", "Ему нужно ещё и программирование?", ("answer", False, False, 220)),
-    ("profi-objection", "ru", "chat_reply", "Дорого, у другого репетитора дешевле", ("handle_objection", False, False, 280)),
+    (
+        "profi-disclosure",
+        "ru",
+        "chat_reply",
+        "Задача делать домашки",
+        ("acknowledge", False, False, 180),
+    ),
+    (
+        "profi-question",
+        "ru",
+        "chat_reply",
+        "Ему нужно ещё и программирование?",
+        ("answer", False, False, 220),
+    ),
+    (
+        "profi-objection",
+        "ru",
+        "chat_reply",
+        "Дорого, у другого репетитора дешевле",
+        ("handle_objection", False, False, 280),
+    ),
     ("profi-agreement", "ru", "chat_reply", "давайте попробуем", ("acknowledge", False, True, 180)),
     ("profi-scheduling", "ru", "chat_reply", "Когда вам удобно?", ("schedule", True, True, 260)),
-    ("profi-scheduling-datetime", "ru", "chat_reply", "Сможете завтра в 15:00?", ("schedule", True, True, 260)),
-    ("tg-recruiter-question", "ru", "chat_reply", "С React 19 работали?", ("answer", False, False, 220)),
-    ("tg-rejection", "ru", "chat_reply", "Мы выбрали другого кандидата", ("acknowledge", False, False, 180)),
-    ("es-scheduling", "es", "chat_reply", "¿Cuándo te viene bien la clase?", ("schedule", True, True, 260)),
+    (
+        "profi-scheduling-datetime",
+        "ru",
+        "chat_reply",
+        "Сможете завтра в 15:00?",
+        ("schedule", True, True, 260),
+    ),
+    (
+        "tg-recruiter-question",
+        "ru",
+        "chat_reply",
+        "С React 19 работали?",
+        ("answer", False, False, 220),
+    ),
+    (
+        "tg-rejection",
+        "ru",
+        "chat_reply",
+        "Мы выбрали другого кандидата",
+        ("acknowledge", False, False, 180),
+    ),
+    (
+        "es-scheduling",
+        "es",
+        "chat_reply",
+        "¿Cuándo te viene bien la clase?",
+        ("schedule", True, True, 260),
+    ),
     ("es-objection", "es", "chat_reply", "Me parece caro", ("handle_objection", False, False, 280)),
     ("zh-question", "zh", "chat_reply", "你也教编程吗？", ("answer", False, False, 220)),
     ("zh-agreement", "zh", "chat_reply", "好的，可以", ("acknowledge", False, True, 180)),
@@ -159,7 +204,9 @@ def run_antitemplate_check() -> dict:
         "Здравствуйте! Помогу Павлу подтянуть алгебру и геометрию, чтобы догнать класс. "
         "Начать можно с пробного занятия, посмотрю, где пробелы. Формат онлайн."
     )
-    similar = previous.replace("Павлу", "Матвею").replace("алгебру и геометрию", "физику и математику")
+    similar = previous.replace("Павлу", "Матвею").replace(
+        "алгебру и геометрию", "физику и математику"
+    )
     req = tutoring_request(
         channel="profi",
         message_type="chat_reply",
@@ -192,8 +239,15 @@ def run_repair_check() -> dict:
     )
     res = fw.generate(req)
     ok = res.rewritten and not res.issues
-    print(f"[repair] {'PASS' if ok else 'FAIL'} rewritten={res.rewritten} issues={[i.code for i in res.issues]}")
-    return {"rewritten": res.rewritten, "issues": [i.code for i in res.issues], "text": res.text, "ok": ok}
+    print(
+        f"[repair] {'PASS' if ok else 'FAIL'} rewritten={res.rewritten} issues={[i.code for i in res.issues]}"
+    )
+    return {
+        "rewritten": res.rewritten,
+        "issues": [i.code for i in res.issues],
+        "text": res.text,
+        "ok": ok,
+    }
 
 
 # =========================================================================
@@ -276,24 +330,52 @@ def scenario_profi_chat(out: list[str]) -> None:
         history.append(Message("assistant", res.text))
         action_ok = res.plan.action.value == expect_action
         guards = _text_guards(res.text)
-        status = "OK" if action_ok and not guards and not res.valid is False else ("OK" if action_ok and not guards else "CHECK")
         out.append(f"### {label}")
-        out.append(f"`{_fmt(res)}` — ожидание action={expect_action}: {'совпало' if action_ok else 'НЕ СОВПАЛО'}"
-                   + (f"; GUARD: {', '.join(guards)}" if guards else ""))
+        out.append(
+            f"`{_fmt(res)}` — ожидание action={expect_action}: {'совпало' if action_ok else 'НЕ СОВПАЛО'}"
+            + (f"; GUARD: {', '.join(guards)}" if guards else "")
+        )
         out.append("")
         out.append(f"> {res.text}")
         out.append("")
-        print(f"[profi] {label}: action={res.plan.action.value} (ожидалось {expect_action})"
-              f" rewrite={res.rewritten} issues={[i.code for i in res.issues]}")
+        print(
+            f"[profi] {label}: action={res.plan.action.value} (ожидалось {expect_action})"
+            f" rewrite={res.rewritten} issues={[i.code for i in res.issues]}"
+        )
 
     out.append("## Сценарий A. Арка Profi-чата (аккаунт info воркера)")
     out.append("")
     turn("A1. Первый отклик по заявке (outreach)", "outreach", None, "pitch")
-    turn("A2. Клиент: «Задача делать домашки» (disclosure)", "chat_reply", "Задача делать домашки", "acknowledge")
-    turn("A3. Клиент: «Ему нужно ещё и программирование?» (question)", "chat_reply", "Ему нужно ещё и программирование?", "answer")
-    turn("A4. Клиент: «Дорого» (objection)", "chat_reply", "Дорого, думали дешевле выйдет", "handle_objection")
-    turn("A5. Клиент: «давайте попробуем» (agreement)", "chat_reply", "давайте попробуем", "acknowledge")
-    turn("A6. Клиент: «Когда вам удобно?» (scheduling)", "chat_reply", "Когда вам удобно?", "schedule")
+    turn(
+        "A2. Клиент: «Задача делать домашки» (disclosure)",
+        "chat_reply",
+        "Задача делать домашки",
+        "acknowledge",
+    )
+    turn(
+        "A3. Клиент: «Ему нужно ещё и программирование?» (question)",
+        "chat_reply",
+        "Ему нужно ещё и программирование?",
+        "answer",
+    )
+    turn(
+        "A4. Клиент: «Дорого» (objection)",
+        "chat_reply",
+        "Дорого, думали дешевле выйдет",
+        "handle_objection",
+    )
+    turn(
+        "A5. Клиент: «давайте попробуем» (agreement)",
+        "chat_reply",
+        "давайте попробуем",
+        "acknowledge",
+    )
+    turn(
+        "A6. Клиент: «Когда вам удобно?» (scheduling)",
+        "chat_reply",
+        "Когда вам удобно?",
+        "schedule",
+    )
 
 
 def scenario_tg_jobsearch(out: list[str]) -> None:
@@ -320,13 +402,17 @@ def scenario_tg_jobsearch(out: list[str]) -> None:
         if extra_check:
             notes = extra_check(res.text)
         out.append(f"### {label}")
-        out.append(f"`{_fmt(res)}` — ожидание action={expect_action}: {'совпало' if action_ok else 'НЕ СОВПАЛО'}"
-                   + (f"; GUARD: {', '.join(guards)}" if guards else "")
-                   + (f"; NOTE: {'; '.join(notes)}" if notes else ""))
+        out.append(
+            f"`{_fmt(res)}` — ожидание action={expect_action}: {'совпало' if action_ok else 'НЕ СОВПАЛО'}"
+            + (f"; GUARD: {', '.join(guards)}" if guards else "")
+            + (f"; NOTE: {'; '.join(notes)}" if notes else "")
+        )
         out.append("")
         out.append(f"> {res.text}")
         out.append("")
-        print(f"[tg] {label}: action={res.plan.action.value} rewrite={res.rewritten} issues={[i.code for i in res.issues]}")
+        print(
+            f"[tg] {label}: action={res.plan.action.value} rewrite={res.rewritten} issues={[i.code for i in res.issues]}"
+        )
 
     out.append("## Сценарий B. Telegram job-search (кейс agentTG: Максим, frontend)")
     out.append("")
@@ -334,21 +420,37 @@ def scenario_tg_jobsearch(out: list[str]) -> None:
         "B1. Рекрутер: «С React 19 работали?» (факта о React 19 нет)",
         "С React 19 работали?",
         "answer",
-        lambda t: (["упомянул React 19 как знакомый — проверить честность"] if "react 19" in t.lower() else []),
+        lambda t: (
+            ["упомянул React 19 как знакомый — проверить честность"]
+            if "react 19" in t.lower()
+            else []
+        ),
     )
     turn(
         "B2. Рекрутер: «Сможете завтра в 15:00?» (доступность не передана)",
         "Сможете завтра в 15:00?",
         "schedule",
-        lambda t: (["явно подтвердил слот без факта доступности"] if re.search(r"(подтвержд|да, в 15|давайте в 15|могу завтра в 15)", t.lower()) else []),
+        lambda t: (
+            ["явно подтвердил слот без факта доступности"]
+            if re.search(r"(подтвержд|да, в 15|давайте в 15|могу завтра в 15)", t.lower())
+            else []
+        ),
     )
     turn(
         "B3. Рекрутер: «Какой у вас уровень английского?» (факта нет)",
         "Какой у вас текущий уровень английского?",
         "answer",
-        lambda t: ([f"назван уровень без факта: {m.group(0)}"] if (m := re.search(r"\bB2|C1|B1|C2|Intermediate|Advanced\b", t)) else []),
+        lambda t: (
+            [f"назван уровень без факта: {m.group(0)}"]
+            if (m := re.search(r"\bB2|C1|B1|C2|Intermediate|Advanced\b", t))
+            else []
+        ),
     )
-    turn("B4. Рекрутер: «Мы выбрали другого кандидата» (rejection)", "Мы выбрали другого кандидата", "acknowledge")
+    turn(
+        "B4. Рекрутер: «Мы выбрали другого кандидата» (rejection)",
+        "Мы выбрали другого кандидата",
+        "acknowledge",
+    )
 
 
 def scenario_injection(out: list[str]) -> None:
@@ -374,7 +476,10 @@ def scenario_injection(out: list[str]) -> None:
     out.append(f"> {res.text}")
     out.append("")
     verdict = "НЕ ПРОШЛА" if guards else "прошла"
-    out.append(f"**Проверка:** {verdict}" + (f" — {', '.join(guards)}" if guards else " — утечки/телефона/цены нет."))
+    out.append(
+        f"**Проверка:** {verdict}"
+        + (f" — {', '.join(guards)}" if guards else " — утечки/телефона/цены нет.")
+    )
     out.append("")
     print(f"[inject] guards={guards or 'чисто'} issues={[i.code for i in res.issues]}")
 
@@ -390,13 +495,16 @@ def scenario_multilang(out: list[str]) -> None:
         message_type="chat_reply",
         profile="spanish",
         conversation=[Message("user", "¿Cuándo te viene bien la clase?")],
-        context={"client_name": "Lucía", "profile_facts": ["tutora de ruso e inglés", "clases online"]},
+        context={
+            "client_name": "Lucía",
+            "profile_facts": ["tutora de ruso e inglés", "clases online"],
+        },
         business_rules=["No inventar experiencia ni certificaciones."],
         voice=VoiceProfile(id="es", description="Tono cercano y breve de mensajería"),
         language="es",
     )
     res = fw.generate(es_req)
-    out.append(f"### E1. es: «¿Cuándo te viene bien la clase?»")
+    out.append("### E1. es: «¿Cuándo te viene bien la clase?»")
     out.append("")
     out.append(f"`{_fmt(res)}`")
     out.append("")
@@ -415,7 +523,7 @@ def scenario_multilang(out: list[str]) -> None:
         language="zh",
     )
     res = fw.generate(zh_req)
-    out.append(f"### E2. zh: «你也教编程吗?»")
+    out.append("### E2. zh: «你也教编程吗?»")
     out.append("")
     out.append(f"`{_fmt(res)}`")
     out.append("")
@@ -447,9 +555,13 @@ def main() -> None:
     out.append("")
 
     at = run_antitemplate_check()
-    out.append(f"Анти-шаблон (почти дубликат своего прошлого сообщения): **{'PASS' if at['ok'] else 'FAIL'}**, issues: `{at['issues']}`.")
+    out.append(
+        f"Анти-шаблон (почти дубликат своего прошлого сообщения): **{'PASS' if at['ok'] else 'FAIL'}**, issues: `{at['issues']}`."
+    )
     rp = run_repair_check()
-    out.append(f"Repair-pass (MockProvider: плохой -> хороший ответ): **{'PASS' if rp['ok'] else 'FAIL'}**, rewritten={rp['rewritten']}, итог: `{rp['text']}`")
+    out.append(
+        f"Repair-pass (MockProvider: плохой -> хороший ответ): **{'PASS' if rp['ok'] else 'FAIL'}**, rewritten={rp['rewritten']}, итог: `{rp['text']}`"
+    )
     out.append("")
 
     scenario_profi_chat(out)

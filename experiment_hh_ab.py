@@ -37,7 +37,9 @@ from profi.llm import client as llm
 
 FW_DIR = Path(r"C:\Users\Maxim\Desktop\humanizer-framework")
 HH_DIR = Path(r"C:\Users\Maxim\Desktop\hh-ops")
-RESUME_JSON = Path(r"C:\Users\Maxim\Desktop\career-ops\output\cv-base\archive\agafonov-persona-20260925\cv-maxim-agafonov-react-ru.json")
+RESUME_JSON = Path(
+    r"C:\Users\Maxim\Desktop\career-ops\output\cv-base\archive\agafonov-persona-20260925\cv-maxim-agafonov-react-ru.json"
+)
 OUT_MD = FW_DIR / "experiment_hh_ab_results_2026-09-28.md"
 
 MESSAGE_PROMPT = (
@@ -160,7 +162,9 @@ VACANCIES = [
             "коде. Требования: HTML5, CSS3, базовый JavaScript, адаптивная верстка, Git. "
             "Опыт с интернет-магазинами приветствуется."
         ),
-        "key_skills": [{"name": n} for n in ["HTML", "CSS", "JavaScript", "Figma", "Адаптивная верстка"]],
+        "key_skills": [
+            {"name": n} for n in ["HTML", "CSS", "JavaScript", "Figma", "Адаптивная верстка"]
+        ],
     },
     {
         "id": "react-fintech",
@@ -178,7 +182,9 @@ VACANCIES = [
             "дизайн-системы. Стек: React, TypeScript, Redux Toolkit, RTK Query, RxJS, "
             "WebSocket, Node.js. Ждём опыт highload real-time интерфейсов."
         ),
-        "key_skills": [{"name": n} for n in ["React", "TypeScript", "Redux Toolkit", "RxJS", "WebSocket"]],
+        "key_skills": [
+            {"name": n} for n in ["React", "TypeScript", "Redux Toolkit", "RxJS", "WebSocket"]
+        ],
     },
     {
         "id": "react-ecom",
@@ -233,6 +239,7 @@ VACANCIES = [
 
 
 # --- Контекст вакансии ровно как _build_cover_letter_context в hh-ops ---
+
 
 def build_context_a(vac: dict) -> str:
     parts: list[str] = []
@@ -419,7 +426,7 @@ _EFFECT_RE = re.compile(
     r"что\s+(?:резал\w*|снижал\w*|повышал\w*|уменьшал\w*|ускорял\w*|улучшал\w*"
     r"|снижает|повышает|уменьшает|ускоряет|улучшает|позволит|помогает)"
 )
-_EMOJI_RE = re.compile("[\U0001F300-\U0001FAFF\u2600-\u27BF]")
+_EMOJI_RE = re.compile("[\U0001f300-\U0001faff\u2600-\u27bf]")
 
 
 def style_metrics(text: str) -> dict:
@@ -568,7 +575,9 @@ def main():
             "effect_n": round(sum(r["effect_n"] for r in rows) / n, 2),
             "em_dash_pct": round(100 * sum(1 for r in rows if r["em_dash"]) / n),
             "tg_pct": round(100 * sum(1 for r in rows if r["tg"]) / n),
-            "ready_discuss_pct": round(100 * sum(1 for r in rows if "готов обсудить" in r["cliche"]) / n),
+            "ready_discuss_pct": round(
+                100 * sum(1 for r in rows if "готов обсудить" in r["cliche"]) / n
+            ),
         }
 
     a0, aa, ab = agg(REAL_SENT), agg(letters["A"]), agg(letters["B"])
@@ -594,18 +603,32 @@ def main():
     out.append("")
     out.append("| Шаблонность ветки | [A] hh-ops | [B] humanizer |")
     out.append("|---|---|---|")
-    out.append(f"| средняя попарная похожесть писем (скелет) | {t_a['avg_pair_sim']} | {t_b['avg_pair_sim']} |")
-    out.append(f"| различных начал (из {len(letters['A'])}) | {t_a['distinct_starts']} | {t_b['distinct_starts']} |")
+    out.append(
+        f"| средняя попарная похожесть писем (скелет) | {t_a['avg_pair_sim']} | {t_b['avg_pair_sim']} |"
+    )
+    out.append(
+        f"| различных начал (из {len(letters['A'])}) | {t_a['distinct_starts']} | {t_b['distinct_starts']} |"
+    )
     if b_issues_total:
         out.append("")
-        out.append(f"Валидатор humanizer суммарно: {len(b_issues_total)} замечаний ({', '.join(b_issues_total)}).")
+        out.append(
+            f"Валидатор humanizer суммарно: {len(b_issues_total)} замечаний ({', '.join(b_issues_total)})."
+        )
 
     OUT_MD.write_text("\n".join(out), encoding="utf-8")
     print(f"\nOK -> {OUT_MD.name}")
     print(
-        "Агрегат: клише", a0["cliche_total"], aa["cliche_total"], ab["cliche_total"],
-        "| эфф.", a0["effect_n"], aa["effect_n"], ab["effect_n"],
-        "| самопохожесть", t_a["avg_pair_sim"], t_b["avg_pair_sim"],
+        "Агрегат: клише",
+        a0["cliche_total"],
+        aa["cliche_total"],
+        ab["cliche_total"],
+        "| эфф.",
+        a0["effect_n"],
+        aa["effect_n"],
+        ab["effect_n"],
+        "| самопохожесть",
+        t_a["avg_pair_sim"],
+        t_b["avg_pair_sim"],
     )
 
 

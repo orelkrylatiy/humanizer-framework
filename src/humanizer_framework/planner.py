@@ -46,7 +46,9 @@ _AGREEMENT_PATTERNS = {
         r"^\s*(да|давайте|ок|окей|хорошо|согласен|согласна|подходит|yes|ok|okay|sounds good)\b",
         re.IGNORECASE,
     ),
-    "es": re.compile(r"^\s*(s[ií]|vale|de\s+acuerdo|perfecto|perfecta|me\s+parece\s+bien)\b", re.IGNORECASE),
+    "es": re.compile(
+        r"^\s*(s[ií]|vale|de\s+acuerdo|perfecto|perfecta|me\s+parece\s+bien)\b", re.IGNORECASE
+    ),
     "zh": re.compile(r"^\s*(好|好的|可以|行|没问题|同意)"),
 }
 
@@ -64,7 +66,9 @@ def _language_key(language: str) -> str:
 
 def _matches(patterns: dict[str, re.Pattern[str]], text: str, language: str) -> bool:
     lang = _language_key(language)
-    return bool(patterns["default"].search(text) or patterns.get(lang, re.compile(r"(?!x)x")).search(text))
+    return bool(
+        patterns["default"].search(text) or patterns.get(lang, re.compile(r"(?!x)x")).search(text)
+    )
 
 
 def _is_question(text: str, language: str) -> bool:

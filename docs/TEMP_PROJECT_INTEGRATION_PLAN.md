@@ -628,7 +628,7 @@ request = tutoring_request(
 Для языкового аккаунта
 
 ```python
-profile="languages"
+profile = "languages"
 ```
 
 или в будущем отдельные runtime subprofiles
@@ -922,9 +922,9 @@ framework.finalize
 Нужно использовать
 
 ```python
-channel="repetit"
-message_type="chat_reply"
-domain="tutoring"
+channel = "repetit"
+message_type = "chat_reply"
+domain = "tutoring"
 ```
 
 ## 7.9 Tests Repetit
@@ -1074,9 +1074,9 @@ new vacancy
 должен использовать
 
 ```python
-domain="job_search"
-channel="telegram"
-message_type="outreach"
+domain = "job_search"
+channel = "telegram"
+message_type = "outreach"
 ```
 
 Framework не решает, можно ли писать этому контакту.
@@ -1276,16 +1276,16 @@ request = job_search_request(
 Целевой вариант
 
 ```python
-channel="hh"
-domain="job_search"
-message_type="application"
-profile="frontend"
+channel = "hh"
+domain = "job_search"
+message_type = "application"
+profile = "frontend"
 ```
 
 или
 
 ```python
-profile="ai-engineer"
+profile = "ai-engineer"
 ```
 
 Framework знает общую application behavior.

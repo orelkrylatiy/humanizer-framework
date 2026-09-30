@@ -134,7 +134,9 @@ def run_humanizer(row: dict, facts_key: str) -> dict:
 
 def main() -> None:
     out = ["# Humanizer на реальных заказах дня — 24.09", ""]
-    out.append("Модель обеих веток: glm-5.3-flash (anthropic-прокси profi-worker). «До» — реально отправленный отклик из БД; «после» — humanizer-framework, отклик НЕ отправлялся.")
+    out.append(
+        "Модель обеих веток: glm-5.3-flash (anthropic-прокси profi-worker). «До» — реально отправленный отклик из БД; «после» — humanizer-framework, отклик НЕ отправлялся."
+    )
     total = ok = 0
     for acc, key in (("lang", "lang"), ("info2", "info"), ("info3", "info")):
         db = REPO / "data" / f"{acc}.db"

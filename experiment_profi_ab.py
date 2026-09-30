@@ -168,8 +168,12 @@ def run_humanizer(row):
 
 def main():
     out = ["# A/B: profi-worker (текущий) vs humanizer-framework — 2026-09-22", ""]
-    out.append(f"Модель у обеих веток: `{llm._model('anthropic')}` (anthropic-прокси из .env profi-worker).")
-    out.append(f"Voice-примеры для humanizer: {len(voice_examples)} реальных отправленных LLM-откликов воркера.")
+    out.append(
+        f"Модель у обеих веток: `{llm._model('anthropic')}` (anthropic-прокси из .env profi-worker)."
+    )
+    out.append(
+        f"Voice-примеры для humanizer: {len(voice_examples)} реальных отправленных LLM-откликов воркера."
+    )
     out.append("")
     for oid in ORDER_IDS:
         row = orders.get(oid)
@@ -195,7 +199,9 @@ def main():
         out.append("")
         try:
             a = run_current(row)
-            out.append(f"**2. [A] Текущий пайплайн, свежий прогон** (вариант {a['variant']}, verdict={a['verdict']}, {a['chars']} симв.):")
+            out.append(
+                f"**2. [A] Текущий пайплайн, свежий прогон** (вариант {a['variant']}, verdict={a['verdict']}, {a['chars']} симв.):"
+            )
             out.append(f"> {a['text']}")
         except Exception as exc:
             out.append(f"**2. [A] Текущий пайплайн — СБОЙ:** `{exc}`")
