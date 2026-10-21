@@ -9,6 +9,7 @@ from .providers import (
     HarnessProvider,
     LiteLLMProvider,
     OpenCodeCLIProvider,
+    ZaiAnthropicProvider,
 )
 from .providers.base import Provider
 
@@ -71,4 +72,9 @@ def provider_from_config(config: ProviderConfig) -> Provider:
         if not isinstance(backends, list):
             raise ValueError("OpenCode pool requires a backends list")
         return HarnessProvider.opencode_pool(backends)
+    if kind == "zai-http":
+        options = dict(config.options)
+        if config.model:
+            options.setdefault("model", config.model)
+        return ZaiAnthropicProvider(**options)
     raise ValueError(f"Unknown provider kind {config.kind!r}")

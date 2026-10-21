@@ -1,5 +1,6 @@
 import json
 import subprocess
+import urllib.error
 from unittest.mock import patch
 
 import pytest
@@ -109,9 +110,7 @@ def test_opencode_reads_credential_from_json_file_without_storing_it(tmp_path):
 
 
 def test_explicit_openai_and_zai_api_factories():
-    gpt = openai_api_provider(
-        credential_source_env="HUMANIZER_OPENAI_KEY_1"
-    )
+    gpt = openai_api_provider(credential_source_env="HUMANIZER_OPENAI_KEY_1")
     glm = zai_api_provider(
         credential_source_file="~/.claude/settings.json",
         credential_source_json_path="env.ANTHROPIC_AUTH_TOKEN",
@@ -186,3 +185,83 @@ def test_opencode_pool_rotates_models_and_factory_supports_it():
         "openai/gpt-6-luna",
         "zai-coding/glm-5.3-flash",
     ]
+
+
+# --- ZaiAnthropicProvider (direct HTTP) ----------------------------------------
+
+
+def test_zai_http_factory_and_defaults():
+    from humanizer_framework.providers import ZaiAnthropicProvider
+
+    provider = provider_from_config(ProviderConfig(kind="zai-http", model="glm-5.3-flash"))
+    assert isinstance(provider, ZaiAnthropicProvider)
+    assert provider.model == "glm-5.3-flash"
+    assert provider.base_url == "https://api.z.ai/api/anthropic"
+
+
+def test_zai_http_resolves_key_from_env_chain_without_exposing_it(monkeypatch):
+    from humanizer_framework.providers import ZaiAnthropicProvider
+
+    monkeypatch.delenv("ANTHROPIC_AUTH_TOKEN", raising=False)
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("ZAI_API_KEY", raising=False)
+    provider = ZaiAnthropicProvider()
+    with pytest.raises(Exception, match="ANTHROPIC_AUTH_TOKEN"):
+        provider._resolve_key()
+    monkeypatch.setenv("ZAI_API_KEY", "secret-value")
+    assert provider._resolve_key() == "secret-value"
+
+
+def test_zai_http_generate_posts_anthropic_payload_and_extracts_text(monkeypatch):
+    from humanizer_framework.providers import ZaiAnthropicProvider
+
+    monkeypatch.setenv("ZAI_API_KEY", "secret-value")
+    captured = {}
+
+    def fake_post(url, payload, headers, timeout):
+        captured.update(url=url, payload=payload, headers=headers)
+        return {"content": [{"type": "text", "text": "Готовый ответ"}]}
+
+    provider = ZaiAnthropicProvider(api_key_env=("ZAI_API_KEY",), max_tokens_floor=3000)
+    with patch.object(ZaiAnthropicProvider, "_post", staticmethod(fake_post)):
+        text = provider.generate(
+            [
+                {"role": "system", "content": "правила"},
+                {"role": "user", "content": "задача"},
+            ],
+            max_tokens=300,
+        )
+    assert text == "Готовый ответ"
+    assert captured["url"].endswith("/v1/messages")
+    assert captured["payload"]["thinking"] == {"type": "disabled"}
+    assert captured["payload"]["max_tokens"] == 3000
+    assert captured["payload"]["model"] == "glm-5.3-flash"
+    assert captured["headers"]["Authorization"] == "Bearer secret-value"
+    assert "system" in captured["payload"]
+    assert "правила" in captured["payload"]["system"]
+
+
+def test_zai_http_empty_text_and_http_errors_raise_provider_error(monkeypatch):
+    from humanizer_framework.errors import ProviderExecutionError
+    from humanizer_framework.providers import ZaiAnthropicProvider
+
+    monkeypatch.setenv("ZAI_API_KEY", "secret-value")
+    provider = ZaiAnthropicProvider(api_key_env=("ZAI_API_KEY",))
+
+    def empty_post(url, payload, headers, timeout):
+        return {"content": []}
+
+    with (
+        patch.object(ZaiAnthropicProvider, "_post", staticmethod(empty_post)),
+        pytest.raises(ProviderExecutionError, match="empty text"),
+    ):
+        provider.generate([{"role": "user", "content": "задача"}])
+
+    def broken_post(url, payload, headers, timeout):
+        raise urllib.error.HTTPError(url, 429, "Too Many Requests", hdrs=None, fp=None)
+
+    with (
+        patch.object(ZaiAnthropicProvider, "_post", staticmethod(broken_post)),
+        pytest.raises(ProviderExecutionError, match="zai-http request failed"),
+    ):
+        provider.generate([{"role": "user", "content": "задача"}])
