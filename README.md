@@ -100,6 +100,22 @@ package.messages can then be sent through the project's existing LLM client.
 
 ## Full generation
 
+Zero-config generation needs no provider argument. The framework defaults to a
+direct HTTP call against the Anthropic-compatible Z.AI endpoint and resolves
+the key from `ANTHROPIC_AUTH_TOKEN`, then `ANTHROPIC_API_KEY`, then
+`ZAI_API_KEY`:
+
+    from humanizer_framework import CommunicationFramework
+
+    framework = CommunicationFramework()
+    text = framework.generate(request)
+
+The default model is `glm-5.3-flash` with GLM thinking disabled so reasoning
+never consumes the response budget. Without a resolvable key, generation fails
+with a typed `ProviderExecutionError` listing the checked env vars.
+
+To use a different backend, pass a provider explicitly.
+
 Example
 
     from humanizer_framework import CommunicationFramework, LiteLLMProvider

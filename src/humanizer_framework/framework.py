@@ -7,6 +7,7 @@ from .models import CommunicationRequest, CommunicationResult, PromptPackage, Va
 from .planner import plan
 from .policies import PolicyRegistry, default_constraints
 from .prompting import build_prompt
+from .providers import ZaiAnthropicProvider
 from .providers.base import Provider
 from .validators import normalize_output, validate_output
 
@@ -21,7 +22,9 @@ class CommunicationFramework:
         retry_delay_seconds: float = 0.5,
         policies: PolicyRegistry | None = None,
     ):
-        self.provider = provider
+        # Zero-config default: direct HTTP to Z.AI with the key resolved from
+        # the env chain (ANTHROPIC_AUTH_TOKEN -> ANTHROPIC_API_KEY -> ZAI_API_KEY).
+        self.provider = provider if provider is not None else ZaiAnthropicProvider()
         # Kept as an accepted argument for configuration compatibility. Hard
         # validation is always fail-closed; callers never receive unsafe text.
         self.strict = strict

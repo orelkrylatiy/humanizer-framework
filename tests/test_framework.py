@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from humanizer_framework import (
     CommunicationFramework,
     GenerationValidationError,
@@ -6,6 +8,7 @@ from humanizer_framework import (
     MockProvider,
     tutoring_request,
 )
+from humanizer_framework.providers import ZaiAnthropicProvider
 import pytest
 
 
@@ -29,6 +32,44 @@ def test_generate_retries_when_first_answer_contains_forbidden_cta():
     assert result.valid
     assert result.text == "Понял) Тогда в основном домашки и будем разбирать."
     assert len(provider.calls) == 2
+
+
+def test_zero_config_default_provider_is_zai_http():
+    framework = CommunicationFramework()
+    assert isinstance(framework.provider, ZaiAnthropicProvider)
+    assert framework.provider.name == "zai-http"
+
+
+def test_zero_config_generate_resolves_key_from_env(monkeypatch):
+    for var in ("ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_API_KEY", "ZAI_API_KEY"):
+        monkeypatch.delenv(var, raising=False)
+    monkeypatch.setenv("ZAI_API_KEY", "secret-value")
+
+    captured = {}
+
+    def fake_post(url, payload, headers, timeout):
+        captured.update(url=url, payload=payload, headers=headers)
+        return {
+            "content": [
+                {"type": "text", "text": "Понял) Тогда в основном домашки и будем разбирать."}
+            ]
+        }
+
+    framework = CommunicationFramework()
+    request = tutoring_request(
+        channel="profi",
+        message_type=MessageType.CHAT_REPLY,
+        profile="informatics",
+        conversation=[Message("user", "Задача делать домашки")],
+    )
+    with patch.object(ZaiAnthropicProvider, "_post", staticmethod(fake_post)):
+        result = framework.generate(request)
+
+    assert result.valid
+    assert result.provider == "zai-http"
+    assert captured["url"].endswith("/v1/messages")
+    assert captured["payload"]["thinking"] == {"type": "disabled"}
+    assert captured["headers"]["Authorization"] == "Bearer secret-value"
 
 
 def test_generate_never_returns_text_with_hard_validation_issues():
