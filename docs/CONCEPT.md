@@ -169,11 +169,10 @@ Provider choice is replaceable.
 Current adapters include
 
 - LiteLLM for cloud and local model APIs
-- Codex CLI
-- Claude Code CLI
+- OpenCode for isolated agent-backed API calls
 - mock provider for tests
 
-GLM models are reached through LiteLLM Z.AI routing.
+GLM and GPT can both be reached as explicit API providers inside OpenCode.
 
 The framework does not hardcode a current model catalog.
 

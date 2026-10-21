@@ -135,14 +135,21 @@ The core must work without a provider through prepare mode.
 
 Generate mode uses a small provider protocol.
 
-Version 0.1 adapters
+Provider adapters
 
 - LiteLLM for cloud and local model APIs
-- Codex CLI
-- Claude Code CLI
+- OpenCode for isolated agent-backed OpenAI and Z.AI/GLM API calls
 - mock provider for tests
 
-GLM support is provided through LiteLLM Z.AI model routing.
+The default harness contains only OpenCode backends. GLM and GPT API keys are
+injected from environment variables or caller-owned JSON settings.
+
+CLI adapters must run isolated, non-interactive turns without inheriting the
+caller's repository or continuing an ambient user session.
+
+Generate mode must retry transient provider failures internally, perform its
+bounded repair pass, and either return validated string text or raise a typed
+generation error. Hard-invalid text must never be returned.
 
 Generic provider options must not override framework-owned generation fields.
 

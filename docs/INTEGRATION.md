@@ -60,6 +60,23 @@ This validates framework behavior without changing credentials, routing or model
 
 Move generation into the framework with the preferred provider adapter.
 
+For a local agent harness, prefer an explicit OpenCode model and ordered
+fallbacks:
+
+```python
+provider = HarnessProvider.opencode_first(
+    "openai/gpt-6-luna",
+    opencode_options={"variant": "high"},
+)
+framework = CommunicationFramework(provider)
+```
+
+The default harness uses OpenCode only. For parallel use of multiple API keys,
+pass multiple environment-variable mappings through `credentials`. For several
+models or providers, use `HarnessProvider.opencode_pool()`. Both pools rotate
+the starting OpenCode process per request and isolate injected credential
+databases per invocation.
+
 ### Step 4
 
 After regression fixtures pass, delete duplicated local communication prompts, random style injection and overlapping validators from the product.
@@ -76,4 +93,4 @@ The product selects a profile and supplies its facts at runtime. Channel and mes
 
 Keep this repository as the source of truth and expose a small service wrapper around `prepare()` and `generate()` rather than reimplementing policies in Java, JavaScript or Go.
 
-A future HTTP contract should mirror `CommunicationRequest` and `CommunicationResult` without exposing provider-specific details.
+A future HTTP contract should accept `CommunicationRequest` and return validated text or a typed generation error without exposing provider-specific details.

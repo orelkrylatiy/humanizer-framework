@@ -14,8 +14,8 @@ import sqlite3
 import sys
 from pathlib import Path
 
-sys.path.insert(0, r"C:\Users\Maxim\Desktop\profi-worker\src")
-sys.path.insert(0, r"C:\Users\Maxim\Desktop\humanizer-framework\src")
+sys.path.insert(0, r"C:\Users\Maxim\Desktop\projects\profi-worker\src")
+sys.path.insert(0, r"C:\Users\Maxim\Desktop\projects\humanizer-framework\src")
 
 try:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -31,7 +31,7 @@ from humanizer_framework.presets import job_search_request, tutoring_request
 from humanizer_framework.providers.base import Provider
 from humanizer_framework.validators import validate_output
 
-PROFI_DB = r"C:\Users\Maxim\Desktop\profi-worker\data\info2.db"
+PROFI_DB = r"C:\Users\Maxim\Desktop\projects\profi-worker\data\info2.db"
 OUT_MD = Path(__file__).with_name("experiment_scenarios_results_2026-09-22.md")
 
 PHONE_RE = re.compile(r"\+?\d[\d\s\-()]{7,}\d")

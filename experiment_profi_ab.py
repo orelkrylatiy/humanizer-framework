@@ -9,8 +9,8 @@ import sqlite3
 import sys
 from pathlib import Path
 
-sys.path.insert(0, r"C:\Users\Maxim\Desktop\profi-worker\src")
-sys.path.insert(0, r"C:\Users\Maxim\Desktop\humanizer-framework\src")
+sys.path.insert(0, r"C:\Users\Maxim\Desktop\projects\profi-worker\src")
+sys.path.insert(0, r"C:\Users\Maxim\Desktop\projects\humanizer-framework\src")
 
 from profi.copy_style import outreach_variant_prompt
 from profi.fastpath import normalize_reply_text
@@ -27,7 +27,7 @@ from humanizer_framework.models import VoiceProfile
 from humanizer_framework.presets import tutoring_request
 from humanizer_framework.providers.base import Provider
 
-PROFI_DB = r"C:\Users\Maxim\Desktop\profi-worker\data\info2.db"
+PROFI_DB = r"C:\Users\Maxim\Desktop\projects\profi-worker\data\info2.db"
 ORDER_IDS = ["94201370", "94198879", "94183599", "94197896", "94060693"]
 
 random.seed(42)  # воспроизводимость _style_variation ветки A

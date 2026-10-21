@@ -16,7 +16,7 @@ to policy registry
 to prompt builder
 to provider
 to validators
-to outgoing message plus plan and validation metadata
+to validated outgoing text
 
 ## Axes
 
@@ -81,8 +81,8 @@ CommunicationFramework.generate(request)
 4. Validate result
 5. If issues exist, make at most one focused rewrite attempt
 6. Keep the candidate only when its issue score improves
-7. In strict mode reject remaining hard failures
-8. Return text, plan, validation issues, provider and prompt version
+7. Reject remaining hard failures with `GenerationValidationError`
+8. Return a string value. Compatibility diagnostics remain attached to the string for evaluation code
 
 ## Planner design
 
@@ -106,7 +106,9 @@ The provider protocol contains one operation that receives provider-ready messag
 
 This keeps the communication core independent of SDK churn.
 
-LiteLLM is optional and provides broad cloud-provider coverage. CLI providers are convenience adapters for authenticated Codex and Claude Code environments.
+LiteLLM remains optional for direct SDK calls. Agent-backed generation uses isolated OpenCode processes for OpenAI, Z.AI/GLM and other configured API providers.
+
+CLI generation is a single isolated turn in an empty temporary directory. It must not continue an ambient user session or inherit access to the caller's repository. Persistent agent sessions are a different lifecycle abstraction and do not implement the text-provider contract.
 
 Provider-specific generic options cannot replace framework-owned model call fields.
 

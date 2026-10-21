@@ -201,7 +201,7 @@ Framework только
 Второй режим полный
 
 ```python
-result = framework.generate(request)
+text = framework.generate(request)
 ```
 
 Framework дополнительно сам вызывает provider и делает validation плюс repair.
@@ -368,7 +368,8 @@ Career Ops реально использует также
 
 Поэтому framework позже нужен optional structured output contract.
 
-Нельзя ломать основной простой `CommunicationResult.text`.
+Основной контракт должен оставаться простым: `generate(request)` возвращает
+валидированный текст или бросает типизированную ошибку.
 
 Лучше добавить optional artifact schema.
 

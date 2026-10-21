@@ -15,8 +15,8 @@ import sys
 from difflib import SequenceMatcher
 from pathlib import Path
 
-sys.path.insert(0, r"C:\Users\Maxim\Desktop\profi-worker\src")
-sys.path.insert(0, r"C:\Users\Maxim\Desktop\humanizer-framework\src")
+sys.path.insert(0, r"C:\Users\Maxim\Desktop\projects\profi-worker\src")
+sys.path.insert(0, r"C:\Users\Maxim\Desktop\projects\humanizer-framework\src")
 
 try:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -34,7 +34,7 @@ from humanizer_framework.presets import tutoring_request
 from humanizer_framework.providers.base import Provider
 from humanizer_framework.validators import _skeleton
 
-PROFI_DB = r"C:\Users\Maxim\Desktop\profi-worker\data\info2.db"
+PROFI_DB = r"C:\Users\Maxim\Desktop\projects\profi-worker\data\info2.db"
 ORDER_IDS = ["94251515", "94250686", "94250115", "94249373", "94249276", "93776865", "94245128"]
 OUT_MD = Path(__file__).with_name("experiment_style_ab_results_2026-09-23.md")
 

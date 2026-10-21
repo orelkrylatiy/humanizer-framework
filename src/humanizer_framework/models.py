@@ -118,14 +118,35 @@ class ValidationIssue:
     hard: bool = False
 
 
-@dataclass(slots=True)
-class CommunicationResult:
-    text: str
-    plan: Plan
-    issues: list[ValidationIssue]
-    rewritten: bool
-    provider: str | None = None
-    prompt_version: str = "v0.1"
+class CommunicationResult(str):
+    """Validated outgoing text with backwards-compatible diagnostics.
+
+    The value is a real ``str`` and can be passed directly to delivery APIs.
+    Metadata remains attached for logging and existing evaluation scripts; it
+    does not create a second generation API.
+    """
+
+    def __new__(
+        cls,
+        text: str,
+        *,
+        plan: Plan,
+        issues: list[ValidationIssue],
+        rewritten: bool,
+        provider: str | None = None,
+        prompt_version: str = "v0.1",
+    ) -> CommunicationResult:
+        value = super().__new__(cls, text)
+        value.plan = plan
+        value.issues = issues
+        value.rewritten = rewritten
+        value.provider = provider
+        value.prompt_version = prompt_version
+        return value
+
+    @property
+    def text(self) -> str:
+        return str(self)
 
     @property
     def valid(self) -> bool:

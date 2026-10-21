@@ -5,7 +5,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from .providers import ClaudeCLIProvider, CodexCLIProvider, LiteLLMProvider
+from .providers import (
+    HarnessProvider,
+    LiteLLMProvider,
+    OpenCodeCLIProvider,
+)
 from .providers.base import Provider
 
 
@@ -49,8 +53,22 @@ def provider_from_config(config: ProviderConfig) -> Provider:
         if not config.model:
             raise ValueError("LiteLLM provider requires a model")
         return LiteLLMProvider(config.model, kwargs=config.options)
-    if kind == "codex-cli":
-        return CodexCLIProvider(**config.options)
-    if kind == "claude-cli":
-        return ClaudeCLIProvider(**config.options)
+    if kind == "opencode-cli":
+        if not config.model:
+            raise ValueError("OpenCode provider requires a provider/model")
+        options = dict(config.options)
+        options.setdefault("model", config.model)
+        return OpenCodeCLIProvider(**options)
+    if kind == "harness":
+        if not config.model:
+            raise ValueError("Harness provider requires an OpenCode provider/model")
+        return HarnessProvider.opencode_first(config.model, **dict(config.options))
+    if kind == "opencode-pool":
+        options = dict(config.options)
+        backends = options.pop("backends", None)
+        if options:
+            raise ValueError("OpenCode pool only accepts the backends option")
+        if not isinstance(backends, list):
+            raise ValueError("OpenCode pool requires a backends list")
+        return HarnessProvider.opencode_pool(backends)
     raise ValueError(f"Unknown provider kind {config.kind!r}")

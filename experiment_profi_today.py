@@ -10,8 +10,8 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-sys.path.insert(0, r"C:\Users\Maxim\Desktop\profi-worker\src")
-sys.path.insert(0, r"C:\Users\Maxim\Desktop\humanizer-framework\src")
+sys.path.insert(0, r"C:\Users\Maxim\Desktop\projects\profi-worker\src")
+sys.path.insert(0, r"C:\Users\Maxim\Desktop\projects\humanizer-framework\src")
 
 try:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -25,7 +25,7 @@ from humanizer_framework.models import VoiceProfile
 from humanizer_framework.presets import tutoring_request
 from humanizer_framework.providers.base import Provider
 
-REPO = Path(r"C:\Users\Maxim\Desktop\profi-worker")
+REPO = Path(r"C:\Users\Maxim\Desktop\projects\profi-worker")
 TODAY0 = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0).timestamp()
 PER_ACCOUNT = 2  # заказов на аккаунт
 

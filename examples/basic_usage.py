@@ -17,4 +17,4 @@ request = tutoring_request(
     context={"subjects": ["informatics", "programming"]},
 )
 
-print(framework.generate(request).text)
+print(framework.generate(request))

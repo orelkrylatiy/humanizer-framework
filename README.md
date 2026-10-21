@@ -4,7 +4,7 @@ Humanizer Framework is a reusable communication layer for LLM-powered products.
 
 It is designed for systems that communicate with people across tutoring marketplaces, job boards, messengers and similar channels.
 
-The framework does more than rewrite AI-sounding text. It first decides what the current turn needs, composes a small policy from domain, channel, message type, language, voice and conversation state, calls an optional provider, validates the output and returns communication metadata with the final text.
+The framework does more than rewrite AI-sounding text. It first decides what the current turn needs, composes a small policy from domain, channel, message type, language, voice and conversation state, calls an optional provider, validates the output and returns validated outgoing text. Hard-invalid text is never returned.
 
 ## Why this exists
 
@@ -107,24 +107,154 @@ Example
     provider = LiteLLMProvider("zai/glm-4.7")
     framework = CommunicationFramework(provider)
 
-    result = framework.generate(request)
-    print(result.text)
+    text = framework.generate(request)
+    print(text)
 
 LiteLLM keeps provider selection outside communication policy. The model string can point to supported OpenAI, Anthropic, Gemini, Z.AI or GLM, Ollama and other backends.
 
-CLI adapters are also available for environments already authenticated with Codex or Claude Code.
+Agent-backed generation uses OpenCode for every model provider.
 
-    from humanizer_framework import CodexCLIProvider, ClaudeCLIProvider
+    from humanizer_framework import (
+        HarnessProvider,
+        OpenCodeCLIProvider,
+        openai_api_provider,
+        zai_api_provider,
+    )
+
+    gpt = openai_api_provider(
+        credential_source_file=(
+            "~/AppData/Roaming/hh-applicant-tool/0555/config.json"
+        ),
+        credential_source_json_path="openai_reply.api_key",
+    )
+    glm = zai_api_provider(
+        credential_source_file="~/.claude/settings.json",
+        credential_source_json_path="env.ANTHROPIC_AUTH_TOKEN",
+    )
+    provider = HarnessProvider.opencode_provider_pool([gpt, glm])
+
+CLI providers run one isolated, non-interactive turn. They do not continue the user's last session or expose the caller's project directory. The OpenCode adapter parses JSONL events and surfaces provider errors as typed framework errors.
+
+The default agent harness spawns only OpenCode:
+
+    provider = HarnessProvider.opencode_first(
+        "openai/gpt-6-luna",
+    )
+    framework = CommunicationFramework(provider)
+
+To rotate between several OpenCode models or providers while retaining
+failover, build an OpenCode-only pool:
+
+    provider = HarnessProvider.opencode_pool(
+        [
+            {"model": "openai/gpt-6-luna"},
+            {
+                "model": "zai-coding/glm-5.3-flash",
+                "credential_source_file": "~/.claude/settings.json",
+                "credential_source_json_path": "env.ANTHROPIC_AUTH_TOKEN",
+                "credential_target_env": "ZAI_API_KEY",
+                "opencode_config": zai_config,
+            },
+        ]
+    )
+
+The pool rotates its starting backend per request and tries the remaining
+OpenCode backends if that backend fails.
+
+The OpenCode model is mandatory and uses `provider/model`. This prevents an
+implicit default from silently selecting another provider. `agent` and
+`variant` can be passed through `opencode_options`.
+
+OpenCode v2 can save several accounts for one provider, but only one is active
+at a time. For concurrent key rotation, configure a pool with secret values in
+environment variables:
+
+    provider = HarnessProvider.opencode_first(
+        "openai/gpt-6-luna",
+        credentials=[
+            {
+                "credential_source_env": "HUMANIZER_OPENAI_KEY_1",
+                "credential_target_env": "OPENAI_API_KEY",
+            },
+            {
+                "credential_source_env": "HUMANIZER_OPENAI_KEY_2",
+                "credential_target_env": "OPENAI_API_KEY",
+            },
+        ],
+    )
+
+Each request starts at the next key. Every key-backed OpenCode process gets an
+isolated credential database, so it cannot be shadowed by or mutate the user's
+active OpenCode account. Secret values are never copied into framework config.
+
+A GLM Coding Plan key already stored in Claude Code settings can be consumed
+without duplicating the secret:
+
+    glm = OpenCodeCLIProvider(
+        model="zai-coding/glm-5.3-flash",
+        credential_source_file="~/.claude/settings.json",
+        credential_source_json_path="env.ANTHROPIC_AUTH_TOKEN",
+        credential_target_env="ZAI_API_KEY",
+        opencode_config={
+            "provider": {
+                "zai-coding": {
+                    "npm": "@ai-sdk/openai-compatible",
+                    "name": "Z.AI Coding",
+                    "options": {
+                        "baseURL": "https://api.z.ai/api/coding/paas/v4",
+                        "apiKey": "{env:ZAI_API_KEY}",
+                    },
+                    "models": {"glm-5.3-flash": {"name": "GLM-5.3 Flash"}},
+                }
+            }
+        },
+    )
+
+The framework reads the JSON value only for the child process. It does not put
+the key in source code, TOML, logs or the provider object.
+
+An OpenAI API key uses a separate OpenCode custom provider. For example, an
+existing hh-applicant-tool profile can remain the secret source:
+
+    gpt = OpenCodeCLIProvider(
+        model="openai-api/gpt-4.1-mini",
+        credential_source_file=(
+            "~/AppData/Roaming/hh-applicant-tool/0555/config.json"
+        ),
+        credential_source_json_path="openai_reply.api_key",
+        credential_target_env="OPENAI_API_KEY",
+        opencode_config={
+            "provider": {
+                "openai-api": {
+                    "npm": "@ai-sdk/openai-compatible",
+                    "name": "OpenAI API",
+                    "options": {
+                        "baseURL": "https://api.openai.com/v1",
+                        "apiKey": "{env:OPENAI_API_KEY}",
+                    },
+                    "models": {"gpt-4.1-mini": {"name": "GPT-4.1 mini"}},
+                }
+            }
+        },
+    )
 
 ## Configuration
 
 A project may keep provider configuration in TOML.
 
-    strict = false
-
     [provider]
     kind = "litellm"
     model = "zai/glm-4.7"
+
+Other provider examples
+
+    [provider]
+    kind = "opencode-cli"
+    model = "openai/gpt-6-luna"
+
+    [provider]
+    kind = "harness"
+    model = "openai/gpt-6-luna"
 
 Provider settings do not contain domain or profile facts. Those remain in the calling product.
 
@@ -169,7 +299,7 @@ Real cloud-provider calls are intentionally not part of default CI.
 
 ## Project status
 
-Version 0.1 is the framework foundation.
+Version 0.2 adds a fail-closed string generation contract and isolated CLI providers.
 
 Implemented
 
@@ -187,8 +317,8 @@ Implemented
 - anti-template similarity check
 - LiteLLM provider
 - GLM routing through LiteLLM
-- Codex CLI provider
-- Claude Code CLI provider
+- isolated OpenCode harness for OpenAI and Z.AI API providers
+- provider retry and fail-closed hard validation
 - regression fixtures
 - CI
 

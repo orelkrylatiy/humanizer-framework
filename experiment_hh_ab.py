@@ -17,8 +17,8 @@ import sys
 from difflib import SequenceMatcher
 from pathlib import Path
 
-sys.path.insert(0, r"C:\Users\Maxim\Desktop\profi-worker\src")
-sys.path.insert(0, r"C:\Users\Maxim\Desktop\humanizer-framework\src")
+sys.path.insert(0, r"C:\Users\Maxim\Desktop\projects\profi-worker\src")
+sys.path.insert(0, r"C:\Users\Maxim\Desktop\projects\humanizer-framework\src")
 
 try:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -35,10 +35,10 @@ from humanizer_framework.providers.base import Provider
 from humanizer_framework.validators import _skeleton
 from profi.llm import client as llm
 
-FW_DIR = Path(r"C:\Users\Maxim\Desktop\humanizer-framework")
-HH_DIR = Path(r"C:\Users\Maxim\Desktop\hh-ops")
+FW_DIR = Path(r"C:\Users\Maxim\Desktop\projects\humanizer-framework")
+HH_DIR = Path(r"C:\Users\Maxim\Desktop\projects\hh-ops")
 RESUME_JSON = Path(
-    r"C:\Users\Maxim\Desktop\career-ops\output\cv-base\archive\agafonov-persona-20260925\cv-maxim-agafonov-react-ru.json"
+    r"C:\Users\Maxim\Desktop\projects\career-ops\output\cv-base\archive\agafonov-persona-20260925\cv-maxim-agafonov-react-ru.json"
 )
 OUT_MD = FW_DIR / "experiment_hh_ab_results_2026-09-28.md"
 

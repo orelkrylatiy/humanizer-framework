@@ -794,23 +794,20 @@ Framework-owned fields include
 
 Caller provider options must not override those fields through generic kwargs.
 
-### 15.2 Codex CLI provider
+### 15.2 OpenCode provider
 
 Purpose
 
-Local or controlled environments already authenticated with Codex.
+Run isolated agent-backed text generation across explicit API providers.
 
-This is an optional convenience provider, not the required production path.
+The model is always selected as `provider/model`. OpenAI and Z.AI/GLM use
+separate custom providers and caller-owned credentials.
 
-### 15.3 Claude Code CLI provider
-
-Same principle as Codex CLI.
-
-### 15.4 Mock provider
+### 15.3 Mock provider
 
 Required for deterministic tests.
 
-### 15.5 Provider non-goals
+### 15.4 Provider non-goals
 
 The framework should not
 
@@ -832,8 +829,8 @@ Full generation should perform
 7. if issues exist, perform at most one focused repair
 8. validate repair
 9. keep repair only if issue score improves
-10. in strict mode reject remaining hard failures
-11. return text, plan, issues, rewrite flag, provider and prompt version
+10. reject remaining hard failures with a typed generation error
+11. return validated text
 
 The one-repair limit prevents uncontrolled recursive generation.
 
@@ -961,14 +958,9 @@ CommunicationRequest.
 
 Output
 
-CommunicationResult with
-
-- final text
-- plan
-- issues
-- rewrite flag
-- provider name
-- prompt version
+Validated string text. Evaluation compatibility metadata may be attached to the
+string value, but callers must not need a second generation method to obtain a
+sendable message.
 
 ### 20.3 Policy registry
 
@@ -987,7 +979,6 @@ Framework provider configuration can be stored in TOML.
 
 Configuration should include
 
-- strict mode
 - provider kind
 - provider model when needed
 - provider-specific optional settings
@@ -1374,8 +1365,7 @@ Included
 - validators
 - repair pass
 - LiteLLM
-- Codex CLI
-- Claude CLI
+- OpenCode API harness
 - deterministic tests
 - basic eval fixtures
 - tutoring and job-search domains
