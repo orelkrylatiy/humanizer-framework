@@ -6,6 +6,7 @@ import urllib.error
 import urllib.request
 from dataclasses import dataclass
 
+from ..env import load_env
 from ..errors import ProviderExecutionError
 
 _DEFAULT_KEY_ENV_VARS = ("ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_API_KEY", "ZAI_API_KEY")
@@ -32,6 +33,7 @@ class ZaiAnthropicProvider:
     def _resolve_key(self) -> str:
         if self.api_key:
             return self.api_key
+        load_env()
         for var in self.api_key_env:
             value = os.environ.get(var)
             if value:

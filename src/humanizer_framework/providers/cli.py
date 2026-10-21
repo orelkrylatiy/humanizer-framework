@@ -193,6 +193,9 @@ class OpenCodeCLIProvider:
         return output
 
     def _load_credential(self) -> str | None:
+        from ..env import load_env
+
+        load_env()
         if self.credential_source_env:
             credential = os.environ.get(self.credential_source_env)
             if not credential:
