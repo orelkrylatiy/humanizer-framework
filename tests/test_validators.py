@@ -202,6 +202,22 @@ def test_bare_paren_smiley_detected_but_enumeration_not():
     assert not _has_smiley("1) опыт 2) стек 3) сроки")
 
 
+def test_english_words_containing_smiley_glyphs_are_not_smileys():
+    """Regression: "express"/"experience" tripped the classic-smiley regex ("xp").
+
+    ASCII smileys must stand alone; the same glyph pair inside a word is prose.
+    English cover letters use these words in nearly every letter.
+    """
+
+    from humanizer_framework.validators import _has_smiley
+
+    assert not _has_smiley(
+        "I am writing to express my interest; my experience fits the role."
+    )
+    assert _has_smiley("Sounds great :)")
+    assert _has_smiley("lol XD")
+
+
 def test_smiley_allowed_for_informal_russian_channels():
     request = _request()
     current_plan = plan(request)

@@ -35,7 +35,12 @@ _CTA_MARKERS = (
 
 _SMILEY_COLON_RE = re.compile(r":[-]?[()DP]|(?<=\():")
 _EMOJI_RE = re.compile("[\U0001f000-\U0001faff\u2600-\u27bf\u2b00-\u2bff\ufe0f]")
-_CLASSIC_SMILEY_RE = re.compile(r"[:;=8xX][-'^o]*[)(DPp]|[(][-'^o]*[:;=]")
+# Classic ASCII smileys must stand alone: a letter on either side means we are
+# inside a word ("express", "experience" contain "xp"; "xD" inside a word is
+# prose, "xD" on its own is a face).
+_CLASSIC_SMILEY_RE = re.compile(
+    r"(?<![A-Za-z])[:;=8xX][-'^o]*[)(DPp](?![A-Za-z])|(?<![A-Za-z])[(][-'^o]*[:;=]"
+)
 
 
 def _has_smiley(text: str) -> bool:
