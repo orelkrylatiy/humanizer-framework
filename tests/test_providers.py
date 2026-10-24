@@ -233,7 +233,7 @@ def test_zai_http_generate_posts_anthropic_payload_and_extracts_text(monkeypatch
         )
     assert text == "Готовый ответ"
     assert captured["url"].endswith("/v1/messages")
-    assert captured["payload"]["thinking"] == {"type": "disabled"}
+    assert captured["payload"]["thinking"] == {"type": "enabled"}
     assert captured["payload"]["max_tokens"] == 3000
     assert captured["payload"]["model"] == "glm-5.3-flash"
     assert captured["headers"]["Authorization"] == "Bearer secret-value"

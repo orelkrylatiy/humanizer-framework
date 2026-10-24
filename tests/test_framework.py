@@ -8,7 +8,7 @@ from humanizer_framework import (
     MockProvider,
     tutoring_request,
 )
-from humanizer_framework.providers import ZaiAnthropicProvider
+from humanizer_framework.providers import HarnessProvider, ZaiAnthropicProvider
 import pytest
 
 
@@ -34,10 +34,10 @@ def test_generate_retries_when_first_answer_contains_forbidden_cta():
     assert len(provider.calls) == 2
 
 
-def test_zero_config_default_provider_is_zai_http():
+def test_zero_config_default_provider_uses_framework_chain():
     framework = CommunicationFramework()
-    assert isinstance(framework.provider, ZaiAnthropicProvider)
-    assert framework.provider.name == "zai-http"
+    assert isinstance(framework.provider, HarnessProvider)
+    assert framework.provider.name == "harness"
 
 
 def test_zero_config_generate_resolves_key_from_env(monkeypatch):
@@ -55,7 +55,7 @@ def test_zero_config_generate_resolves_key_from_env(monkeypatch):
             ]
         }
 
-    framework = CommunicationFramework()
+    framework = CommunicationFramework(provider=ZaiAnthropicProvider())
     request = tutoring_request(
         channel="profi",
         message_type=MessageType.CHAT_REPLY,
@@ -68,7 +68,7 @@ def test_zero_config_generate_resolves_key_from_env(monkeypatch):
     assert result.valid
     assert result.provider == "zai-http"
     assert captured["url"].endswith("/v1/messages")
-    assert captured["payload"]["thinking"] == {"type": "disabled"}
+    assert captured["payload"]["thinking"] == {"type": "enabled"}
     assert captured["headers"]["Authorization"] == "Bearer secret-value"
 
 

@@ -16,8 +16,8 @@ _DEFAULT_KEY_ENV_VARS = ("ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_API_KEY", "ZAI_API_K
 class ZaiAnthropicProvider:
     """Direct-HTTP provider for the Anthropic-compatible Z.AI endpoint.
 
-    Talks straight to ``{base_url}/v1/messages`` (no subprocess), disables
-    GLM thinking so reasoning never eats the response budget, and resolves
+    Talks straight to ``{base_url}/v1/messages`` (no subprocess), enables
+    GLM thinking for models that require it, and resolves
     the key from the first set env var in ``api_key_env``. Never logs or
     embeds the key value in errors.
     """
@@ -66,9 +66,9 @@ class ZaiAnthropicProvider:
             "max_tokens": max(self.max_tokens_floor, max_tokens),
             "temperature": temperature,
             "messages": [{"role": "user", "content": user}],
-            # GLM reasoning otherwise consumes max_tokens and returns empty
-            # text (profi-worker incidents 27-29.09).
-            "thinking": {"type": "disabled"},
+            # Current GLM models may reject thinking=disabled. Keep the
+            # provider's default usable without per-project overrides.
+            "thinking": {"type": "enabled"},
         }
         headers = {
             "Content-Type": "application/json",
