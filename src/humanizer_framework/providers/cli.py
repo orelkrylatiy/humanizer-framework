@@ -5,6 +5,7 @@ import os
 import shutil
 import subprocess
 import tempfile
+from typing import Any
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
@@ -143,6 +144,7 @@ class OpenCodeCLIProvider:
         self.credential_target_env = credential_target_env
         self.isolate_credentials = isolate_credentials
         self.opencode_config = dict(opencode_config or {})
+        self.last_usage: dict[str, Any] | None = None
 
     @property
     def command(self) -> list[str]:
@@ -188,6 +190,7 @@ class OpenCodeCLIProvider:
                 check=False,
             )
         output = _parse_opencode_jsonl(completed.stdout)
+        self.last_usage = _extract_opencode_usage(completed.stdout)
         if not output:
             raise ProviderExecutionError("OpenCode CLI returned no assistant text")
         return output
@@ -256,3 +259,24 @@ def _parse_opencode_jsonl(output: str) -> str:
     if provider_error and not chunks:
         raise ProviderExecutionError(f"OpenCode provider failed: {provider_error}")
     return "".join(chunks).strip()
+
+
+def _extract_opencode_usage(output: str) -> dict[str, Any] | None:
+    """Best-effort extraction; OpenCode event schemas vary by version."""
+    merged: dict[str, Any] = {}
+    for line in output.splitlines():
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        for key in ("usage", "tokens", "cost"):
+            value = event.get(key)
+            if isinstance(value, dict):
+                merged.update(value)
+        info = event.get("info")
+        if isinstance(info, dict):
+            for key in ("usage", "tokens", "cost"):
+                value = info.get(key)
+                if isinstance(value, dict):
+                    merged.update(value)
+    return merged or None

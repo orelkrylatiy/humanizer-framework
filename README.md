@@ -337,3 +337,17 @@ Implemented
 - CI
 
 The next major step is integration into a real consumer, starting with Profi Worker, and expansion of the anonymized real-conversation evaluation dataset.
+
+# Telemetry
+
+Generation calls write one technical JSONL event by default. The event contains
+UTC time, project, channel/domain/message type/profile, optional lead/recipient
+identity from request context, provider/model, latency, attempts, repair status,
+validation issues, errors, and provider-reported token usage. Prompts and output
+texts are never written.
+
+Set `HUMANIZER_TELEMETRY_PATH` to choose a file, or
+`HUMANIZER_TELEMETRY=0` to disable it. Other consumers need no code changes;
+editable installs pick up the framework update automatically. Consumers that
+want a project-specific file can set the path before importing/generating.
+

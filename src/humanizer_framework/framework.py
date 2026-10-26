@@ -10,6 +10,7 @@ from .prompting import build_prompt
 from .providers import default_provider
 from .providers.base import Provider
 from .validators import normalize_output, validate_output
+from .telemetry import now_utc, write_generation_event
 
 
 class CommunicationFramework:
@@ -34,6 +35,7 @@ class CommunicationFramework:
         self.provider_attempts = provider_attempts
         self.retry_delay_seconds = retry_delay_seconds
         self.policies = policies or PolicyRegistry()
+        self._last_provider_attempts = 0
 
     def prepare(self, request: CommunicationRequest) -> PromptPackage:
         current_plan = plan(request)
@@ -41,47 +43,84 @@ class CommunicationFramework:
         return build_prompt(request, current_plan, constraints, self.policies)
 
     def generate(self, request: CommunicationRequest) -> CommunicationResult:
+        started_at = now_utc()
+        started_clock = time.perf_counter()
+        calls = 0
+        attempts = 0
+        repair_attempted = False
+        rewritten = False
+        self._last_provider_attempts = 0
         if self.provider is None:
             raise RuntimeError(
                 "generate() requires a provider. Use prepare() for prompt-only mode."
             )
+        try:
+            package = self.prepare(request)
+            raw = self._call_provider(package.messages, max_tokens=400)
+            calls += 1
+            attempts += self._last_provider_attempts
+            text = normalize_output(raw, package.constraints, request.language)
+            issues = validate_output(text, request, package.plan, package.constraints)
 
-        package = self.prepare(request)
-        raw = self._call_provider(package.messages, max_tokens=400)
-        text = normalize_output(raw, package.constraints, request.language)
-        issues = validate_output(text, request, package.plan, package.constraints)
-        rewritten = False
+            if issues:
+                repair_attempted = True
+                repair_messages = [
+                    *package.messages,
+                    {"role": "assistant", "content": text},
+                    {
+                        "role": "user",
+                        "content": _repair_instruction(issues, package.plan.max_chars),
+                    },
+                ]
+                candidate = self._call_provider(
+                    repair_messages, temperature=0.2, max_tokens=400
+                )
+                calls += 1
+                attempts += self._last_provider_attempts
+                candidate = normalize_output(candidate, package.constraints, request.language)
+                candidate_issues = validate_output(
+                    candidate, request, package.plan, package.constraints
+                )
+                if _issue_score(candidate_issues) < _issue_score(issues):
+                    text, issues, rewritten = candidate, candidate_issues, True
 
-        if issues:
-            repair_messages = [
-                *package.messages,
-                {"role": "assistant", "content": text},
-                {
-                    "role": "user",
-                    "content": _repair_instruction(issues, package.plan.max_chars),
-                },
-            ]
-            candidate = self._call_provider(
-                repair_messages, temperature=0.2, max_tokens=400
+            hard_issues = [issue for issue in issues if issue.hard]
+            if hard_issues:
+                raise GenerationValidationError(hard_issues, last_text=text)
+
+            result = CommunicationResult(
+                text=text,
+                plan=package.plan,
+                issues=issues,
+                rewritten=rewritten,
+                provider=getattr(self.provider, "name", type(self.provider).__name__),
             )
-            candidate = normalize_output(candidate, package.constraints, request.language)
-            candidate_issues = validate_output(
-                candidate, request, package.plan, package.constraints
+            write_generation_event(
+                request,
+                started_at=started_at,
+                status="success",
+                provider=self.provider,
+                elapsed_ms=round((time.perf_counter() - started_clock) * 1000),
+                calls=calls,
+                attempts=attempts,
+                repair_attempted=repair_attempted,
+                rewritten=rewritten,
+                issues=issues,
             )
-            if _issue_score(candidate_issues) < _issue_score(issues):
-                text, issues, rewritten = candidate, candidate_issues, True
-
-        hard_issues = [issue for issue in issues if issue.hard]
-        if hard_issues:
-            raise GenerationValidationError(hard_issues, last_text=text)
-
-        return CommunicationResult(
-            text=text,
-            plan=package.plan,
-            issues=issues,
-            rewritten=rewritten,
-            provider=getattr(self.provider, "name", type(self.provider).__name__),
-        )
+            return result
+        except Exception as exc:
+            write_generation_event(
+                request,
+                started_at=started_at,
+                status="error",
+                provider=self.provider,
+                elapsed_ms=round((time.perf_counter() - started_clock) * 1000),
+                calls=calls,
+                attempts=attempts + self._last_provider_attempts,
+                repair_attempted=repair_attempted,
+                error=exc,
+            )
+            raise
 
     def _call_provider(
         self,
@@ -93,8 +132,10 @@ class CommunicationFramework:
         if self.provider is None:  # pragma: no cover - guarded by generate()
             raise RuntimeError("provider is not configured")
 
+        self._last_provider_attempts = 0
         last_error: Exception | None = None
         for attempt in range(self.provider_attempts):
+            self._last_provider_attempts += 1
             try:
                 return self.provider.generate(
                     messages,

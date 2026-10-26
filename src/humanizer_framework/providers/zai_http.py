@@ -4,7 +4,7 @@ import json
 import os
 import urllib.error
 import urllib.request
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from ..env import load_env
 from ..errors import ProviderExecutionError
@@ -29,6 +29,7 @@ class ZaiAnthropicProvider:
     timeout_seconds: int = 120
     max_tokens_floor: int = 3000
     name: str = "zai-http"
+    last_usage: dict | None = field(init=False, default=None)
 
     def _resolve_key(self) -> str:
         if self.api_key:
@@ -83,6 +84,8 @@ class ZaiAnthropicProvider:
             raise
         except Exception as exc:
             raise ProviderExecutionError(f"zai-http request failed: {exc}") from exc
+        usage = data.get("usage")
+        self.last_usage = dict(usage) if isinstance(usage, dict) else None
         text = "".join(
             block.get("text", "")
             for block in data.get("content", [])

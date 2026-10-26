@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import threading
 from collections.abc import Sequence
+from typing import Any
 
 from ..errors import ProviderExecutionError
 from .base import Provider
@@ -19,6 +20,11 @@ class ProviderPool:
         self.providers = list(providers)
         self._next = 0
         self._lock = threading.Lock()
+        self.last_provider: Provider | None = None
+        self.last_provider_name: str | None = None
+        self.last_model: str | None = None
+        self.last_usage: dict[str, Any] | None = None
+        self.last_errors: list[str] = []
 
     def generate(
         self,
@@ -32,14 +38,22 @@ class ProviderPool:
             self._next = (self._next + 1) % len(self.providers)
 
         errors: list[str] = []
+        self.last_errors = []
         for offset in range(len(self.providers)):
             provider = self.providers[(start + offset) % len(self.providers)]
             try:
-                return provider.generate(
+                result = provider.generate(
                     messages, temperature=temperature, max_tokens=max_tokens
                 )
+                self.last_errors = errors
+                self.last_provider = provider
+                self.last_provider_name = getattr(provider, "name", type(provider).__name__)
+                self.last_model = getattr(provider, "last_model", None) or getattr(provider, "model", None)
+                self.last_usage = getattr(provider, "last_usage", None)
+                return result
             except Exception as exc:
                 errors.append(f"{getattr(provider, 'name', type(provider).__name__)}: {exc}")
+        self.last_errors = errors
         raise ProviderExecutionError("All providers in pool failed: " + " | ".join(errors))
 
 
@@ -52,6 +66,11 @@ class HarnessProvider:
         if not providers:
             raise ValueError("HarnessProvider requires at least one provider")
         self.providers = list(providers)
+        self.last_provider: Provider | None = None
+        self.last_provider_name: str | None = None
+        self.last_model: str | None = None
+        self.last_usage: dict[str, Any] | None = None
+        self.last_errors: list[str] = []
 
     @classmethod
     def opencode_first(
@@ -110,11 +129,19 @@ class HarnessProvider:
         max_tokens: int = 300,
     ) -> str:
         errors: list[str] = []
+        self.last_errors = []
         for provider in self.providers:
             try:
-                return provider.generate(
+                result = provider.generate(
                     messages, temperature=temperature, max_tokens=max_tokens
                 )
+                self.last_errors = errors
+                self.last_provider = provider
+                self.last_provider_name = getattr(provider, "last_provider_name", None) or getattr(provider, "name", type(provider).__name__)
+                self.last_model = getattr(provider, "last_model", None) or getattr(provider, "model", None)
+                self.last_usage = getattr(provider, "last_usage", None)
+                return result
             except Exception as exc:
                 errors.append(f"{getattr(provider, 'name', type(provider).__name__)}: {exc}")
+        self.last_errors = errors
         raise ProviderExecutionError("Every harness backend failed: " + " | ".join(errors))
