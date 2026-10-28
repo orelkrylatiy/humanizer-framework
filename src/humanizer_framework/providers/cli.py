@@ -263,20 +263,59 @@ def _parse_opencode_jsonl(output: str) -> str:
 
 def _extract_opencode_usage(output: str) -> dict[str, Any] | None:
     """Best-effort extraction; OpenCode event schemas vary by version."""
-    merged: dict[str, Any] = {}
+    totals: dict[str, int | float] = {}
     for line in output.splitlines():
         try:
             event = json.loads(line)
         except json.JSONDecodeError:
             continue
-        for key in ("usage", "tokens", "cost"):
-            value = event.get(key)
-            if isinstance(value, dict):
-                merged.update(value)
-        info = event.get("info")
-        if isinstance(info, dict):
-            for key in ("usage", "tokens", "cost"):
-                value = info.get(key)
+        candidates = [event]
+        for container_key in ("part", "info"):
+            container = event.get(container_key)
+            if isinstance(container, dict):
+                candidates.append(container)
+
+        # Current OpenCode JSONL puts token counts on step-finish.part.tokens.
+        # Older versions and API-backed providers may expose usage/tokens at the
+        # event or info level instead, so retain those fallbacks.
+        for candidate in candidates:
+            for key in ("usage", "tokens"):
+                value = candidate.get(key)
                 if isinstance(value, dict):
-                    merged.update(value)
-    return merged or None
+                    _merge_usage(totals, value)
+            cost = candidate.get("cost")
+            if isinstance(cost, (int, float)) and not isinstance(cost, bool):
+                totals["cost"] = totals.get("cost", 0) + cost
+            elif isinstance(cost, dict):
+                _merge_usage(totals, cost)
+    return dict(totals) or None
+
+
+def _merge_usage(totals: dict[str, int | float], usage: dict[str, Any]) -> None:
+    aliases = {
+        "input": "input_tokens",
+        "input_tokens": "input_tokens",
+        "prompt_tokens": "input_tokens",
+        "output": "output_tokens",
+        "output_tokens": "output_tokens",
+        "completion_tokens": "output_tokens",
+        "reasoning": "reasoning_tokens",
+        "reasoning_tokens": "reasoning_tokens",
+        "total": "total_tokens",
+        "total_tokens": "total_tokens",
+    }
+    for key, value in usage.items():
+        if isinstance(value, dict):
+            if key == "cache":
+                for cache_key, cache_value in value.items():
+                    if isinstance(cache_value, (int, float)) and not isinstance(
+                        cache_value, bool
+                    ):
+                        name = f"cache_{cache_key}_tokens"
+                        totals[name] = totals.get(name, 0) + cache_value
+            continue
+        if not isinstance(value, (int, float)) or isinstance(value, bool):
+            continue
+        name = aliases.get(key)
+        if name:
+            totals[name] = totals.get(name, 0) + value

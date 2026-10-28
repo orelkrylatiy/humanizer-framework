@@ -14,7 +14,10 @@ from humanizer_framework.providers import (
     openai_api_provider,
     zai_api_provider,
 )
-from humanizer_framework.providers.cli import _parse_opencode_jsonl
+from humanizer_framework.providers.cli import (
+    _extract_opencode_usage,
+    _parse_opencode_jsonl,
+)
 
 
 def test_provider_specs_are_lazy_and_constructible():
@@ -54,6 +57,55 @@ def test_opencode_jsonl_parser_returns_only_assistant_text():
     )
 
     assert _parse_opencode_jsonl(output) == "Готовый ответ"
+
+
+def test_opencode_jsonl_extracts_nested_step_usage_and_sums_steps():
+    output = "\n".join(
+        [
+            json.dumps(
+                {
+                    "type": "step_finish",
+                    "part": {
+                        "type": "step-finish",
+                        "cost": 0.01,
+                        "tokens": {
+                            "input": 120,
+                            "output": 30,
+                            "reasoning": 10,
+                            "total": 160,
+                            "cache": {"read": 40, "write": 5},
+                        },
+                    },
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "step_finish",
+                    "part": {
+                        "type": "step-finish",
+                        "cost": 0.02,
+                        "tokens": {
+                            "input": 80,
+                            "output": 20,
+                            "reasoning": 5,
+                            "total": 105,
+                            "cache": {"read": 10, "write": 0},
+                        },
+                    },
+                }
+            ),
+        ]
+    )
+
+    assert _extract_opencode_usage(output) == {
+        "cost": 0.03,
+        "input_tokens": 200,
+        "output_tokens": 50,
+        "reasoning_tokens": 15,
+        "total_tokens": 265,
+        "cache_read_tokens": 50,
+        "cache_write_tokens": 5,
+    }
 
 
 def test_opencode_requires_explicit_provider_and_model():
