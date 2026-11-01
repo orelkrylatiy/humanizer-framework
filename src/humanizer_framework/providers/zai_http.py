@@ -27,7 +27,7 @@ class ZaiAnthropicProvider:
     api_key_env: tuple[str, ...] = _DEFAULT_KEY_ENV_VARS
     api_key: str | None = None
     timeout_seconds: int = 120
-    max_tokens_floor: int = 3000
+    max_tokens_floor: int = 16000
     name: str = "zai-http"
     last_usage: dict | None = field(init=False, default=None)
 
