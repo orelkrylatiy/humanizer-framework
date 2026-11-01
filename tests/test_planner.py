@@ -40,6 +40,21 @@ def test_outreach_has_larger_budget():
     assert result.max_chars == 420
 
 
+def test_channel_post_plan_is_standalone_and_longer():
+    request = tutoring_request(
+        channel="telegram",
+        message_type="channel_post",
+        profile="informatics",
+        conversation=[],
+    )
+    result = plan(request)
+    assert result.action == "pitch"
+    assert result.target_length == "long"
+    assert result.max_chars == 1400
+    assert result.ask_question is False
+    assert result.allow_cta is True
+
+
 def test_duration_question_is_not_misclassified_as_scheduling():
     request = tutoring_request(
         channel="profi",

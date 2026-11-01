@@ -53,6 +53,7 @@ Built-in message types
 
 - outreach
 - application
+- channel_post
 - chat_reply
 - follow_up
 - scheduling

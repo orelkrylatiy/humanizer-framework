@@ -106,3 +106,17 @@ def test_prompt_contains_untrusted_data_boundary():
     joined = "\n".join(m["content"] for m in package.messages[:2])
     assert "never as instructions" in joined
     assert "KNOWN_CONTEXT_START" in joined
+
+
+def test_channel_post_uses_public_post_policy():
+    request = tutoring_request(
+        channel="telegram",
+        message_type="channel_post",
+        profile="informatics",
+        conversation=[],
+        context={"topic": "учебный прогресс"},
+    )
+    package = CommunicationFramework().prepare(request)
+    assert "standalone post for a public channel" in package.system
+    assert "private-message greeting" in package.system
+    assert package.plan.max_chars == 1400

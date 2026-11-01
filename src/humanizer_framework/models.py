@@ -8,6 +8,7 @@ from typing import Any
 class MessageType(StrEnum):
     OUTREACH = "outreach"
     APPLICATION = "application"
+    CHANNEL_POST = "channel_post"
     CHAT_REPLY = "chat_reply"
     FOLLOW_UP = "follow_up"
     SCHEDULING = "scheduling"

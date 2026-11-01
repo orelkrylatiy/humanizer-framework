@@ -80,7 +80,11 @@ def _is_question(text: str, language: str) -> bool:
 
 
 def _target_length(text: str, message_type: MessageType) -> TargetLength:
-    if message_type in {MessageType.OUTREACH, MessageType.APPLICATION}:
+    if message_type in {
+        MessageType.OUTREACH,
+        MessageType.APPLICATION,
+        MessageType.CHANNEL_POST,
+    }:
         return TargetLength.MEDIUM
     if len(text) <= 80:
         return TargetLength.VERY_SHORT
@@ -116,6 +120,18 @@ def plan(request: CommunicationRequest) -> Plan:
             allow_cta=False,
             max_chars=700,
             rationale="job application should be tailored but not force a chat CTA",
+        )
+
+    if message_type == MessageType.CHANNEL_POST:
+        return Plan(
+            act=ConversationAct.DISCLOSURE,
+            stage=ConversationStage.NEW,
+            action=ReplyAction.PITCH,
+            target_length=TargetLength.LONG,
+            ask_question=False,
+            allow_cta=True,
+            max_chars=1400,
+            rationale="standalone public post should explain one useful idea clearly",
         )
 
     if message_type == MessageType.FOLLOW_UP:
