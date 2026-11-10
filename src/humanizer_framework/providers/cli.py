@@ -170,6 +170,18 @@ class OpenCodeCLIProvider:
         del temperature, max_tokens
         prompt = _flatten_messages(messages)
         environment = os.environ.copy()
+        # OpenCode owns its subscription/API transport. The surrounding job
+        # may set proxy variables for HH requests; inheriting them can route
+        # OpenCode through an incompatible proxy and leave it hanging.
+        for key in (
+            "HTTP_PROXY",
+            "HTTPS_PROXY",
+            "ALL_PROXY",
+            "http_proxy",
+            "https_proxy",
+            "all_proxy",
+        ):
+            environment.pop(key, None)
         config = dict(self.opencode_config)
         config["permission"] = {"*": "deny"}
         environment["OPENCODE_CONFIG_CONTENT"] = json.dumps(

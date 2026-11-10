@@ -117,6 +117,8 @@ def test_opencode_requires_explicit_provider_and_model():
 
 def test_opencode_passes_variant_and_credential_without_storing_secret(monkeypatch):
     monkeypatch.setenv("HUMANIZER_OPENAI_KEY_1", "secret-value")
+    monkeypatch.setenv("HTTPS_PROXY", "http://hh-proxy.invalid")
+    monkeypatch.setenv("ALL_PROXY", "http://hh-proxy.invalid")
     completed = subprocess.CompletedProcess(
         args=[],
         returncode=0,
@@ -140,6 +142,8 @@ def test_opencode_passes_variant_and_credential_without_storing_secret(monkeypat
     environment = run.call_args.kwargs["env"]
     assert command[command.index("--variant") + 1] == "high"
     assert environment["OPENAI_API_KEY"] == "secret-value"
+    assert "HTTPS_PROXY" not in environment
+    assert "ALL_PROXY" not in environment
     assert environment["OPENCODE_DB"].endswith("opencode.db")
     config = json.loads(environment["OPENCODE_CONFIG_CONTENT"])
     assert config["provider"]["custom"]["name"] == "Custom"
