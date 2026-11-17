@@ -66,8 +66,8 @@ def test_default_provider_chain_order():
     assert isinstance(chain, HarnessProvider)
     legs = [(type(p).__name__, getattr(p, "model", None)) for p in chain.providers]
     assert legs == [
-        ("OpenCodeCLIProvider", "openai/gpt-5.6-luna-fast"),
         ("ZaiAnthropicProvider", "glm-5.3-flash"),
+        ("OpenCodeCLIProvider", "openai/gpt-5.6-luna-fast"),
         ("OpenCodeCLIProvider", "openai-api/gpt-4.1-mini"),
     ]
 
@@ -75,7 +75,7 @@ def test_default_provider_chain_order():
 def test_default_provider_opencode_model_override(monkeypatch):
     monkeypatch.setenv("HUMANIZER_OPENCODE_MODEL", "openai/gpt-6-mini")
     chain = default_provider()
-    assert chain.providers[0].model == "openai/gpt-6-mini"
+    assert chain.providers[1].model == "openai/gpt-6-mini"
 
 
 def test_claude_cli_command_build():
@@ -86,6 +86,11 @@ def test_claude_cli_command_build():
 
 def test_claude_cli_empty_response_fails(monkeypatch):
     import subprocess
+
+    monkeypatch.setattr(
+        "humanizer_framework.providers.cli.shutil.which",
+        lambda _name: "/usr/bin/claude",
+    )
 
     def fake_run(command, **kwargs):
         return subprocess.CompletedProcess(command, returncode=0, stdout="   ", stderr="")
@@ -98,6 +103,11 @@ def test_claude_cli_empty_response_fails(monkeypatch):
 
 def test_claude_cli_returns_text(monkeypatch):
     import subprocess
+
+    monkeypatch.setattr(
+        "humanizer_framework.providers.cli.shutil.which",
+        lambda _name: "/usr/bin/claude",
+    )
 
     def fake_run(command, **kwargs):
         assert "SYSTEM" in kwargs["prompt"]
