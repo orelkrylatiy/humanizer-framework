@@ -72,9 +72,7 @@ class CommunicationFramework:
                         "content": _repair_instruction(issues, package.plan.max_chars),
                     },
                 ]
-                candidate = self._call_provider(
-                    repair_messages, temperature=0.2, max_tokens=400
-                )
+                candidate = self._call_provider(repair_messages, temperature=0.2, max_tokens=400)
                 calls += 1
                 attempts += self._last_provider_attempts
                 candidate = normalize_output(candidate, package.constraints, request.language)
