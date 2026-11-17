@@ -120,18 +120,18 @@ class ValidationIssue:
 
 
 class CommunicationResult(str):
-    plan: Plan
-    issues: list[ValidationIssue]
-    rewritten: bool
-    provider: str | None
-    prompt_version: str
-
     """Validated outgoing text with backwards-compatible diagnostics.
 
     The value is a real ``str`` and can be passed directly to delivery APIs.
     Metadata remains attached for logging and existing evaluation scripts; it
     does not create a second generation API.
     """
+
+    plan: Plan
+    issues: list[ValidationIssue]
+    rewritten: bool
+    provider: str | None
+    prompt_version: str
 
     def __new__(
         cls,
