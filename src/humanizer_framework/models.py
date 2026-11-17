@@ -120,6 +120,12 @@ class ValidationIssue:
 
 
 class CommunicationResult(str):
+    plan: Plan
+    issues: list[ValidationIssue]
+    rewritten: bool
+    provider: str | None
+    prompt_version: str
+
     """Validated outgoing text with backwards-compatible diagnostics.
 
     The value is a real ``str`` and can be passed directly to delivery APIs.
