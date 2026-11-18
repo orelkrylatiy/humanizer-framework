@@ -231,6 +231,8 @@ def test_process_commentary_is_hard_invalid_in_any_channel():
     constraints = default_constraints(request, current_plan)
     issues = validate_output(
         "Сначала сверю информацию. По вопросу отвечу отдельно.",
-        request, current_plan, constraints,
+        request,
+        current_plan,
+        constraints,
     )
     assert any(issue.code == "meta_prefix" and issue.hard for issue in issues)
