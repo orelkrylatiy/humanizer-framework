@@ -354,3 +354,32 @@ def test_harness_snapshot_is_thread_local_after_pool_rotation():
         results = list(pool.map(task, range(12)))
     assert {item[0] for item in results} == {"alpha", "beta"}
     assert all(text == provider for text, provider in results)
+
+
+def test_opencode_can_retain_proxy_with_explicit_opt_in(monkeypatch):
+    monkeypatch.setenv("HTTPS_PROXY", "http://company-proxy.test")
+    completed = subprocess.CompletedProcess(
+        args=[], returncode=0,
+        stdout='{"type":"text","part":{"text":"ответ"}}', stderr=""
+    )
+    with (
+        patch("humanizer_framework.providers.cli._resolve_executable", return_value="opencode"),
+        patch("humanizer_framework.providers.cli._run_command", return_value=completed) as run,
+    ):
+        provider = OpenCodeCLIProvider(
+            model="openai/gpt-5.6-luna-fast",
+            strip_proxy_environment=False,
+        )
+        assert provider.generate([{"role": "user", "content": "Ответь"}]) == "ответ"
+    assert run.call_args.kwargs["env"]["HTTPS_PROXY"] == "http://company-proxy.test"
+
+
+def test_cli_exception_never_includes_stderr_secret():
+    from humanizer_framework.providers.cli import _run_command
+    failed = subprocess.CalledProcessError(1, ["fake-cli"], stderr="Authorization Bearer secret-key")
+    with (
+        patch("humanizer_framework.providers.cli.subprocess.run", side_effect=failed),
+        pytest.raises(Exception) as exc,
+    ):
+        _run_command(["fake-cli"], prompt="", timeout_seconds=1)
+    assert "secret-key" not in str(exc.value)

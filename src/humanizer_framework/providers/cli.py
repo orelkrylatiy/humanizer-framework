@@ -54,11 +54,13 @@ def _run_command(
             f"CLI provider timed out after {timeout_seconds} seconds"
         ) from exc
     except subprocess.CalledProcessError as exc:
-        stderr = (exc.stderr or "").strip()
-        detail = stderr[-1000:] if stderr else f"exit code {exc.returncode}"
-        raise ProviderExecutionError(f"CLI provider failed: {detail}") from exc
+        raise ProviderExecutionError(
+            f"CLI provider exited with code {exc.returncode}"
+        ) from exc
     except OSError as exc:
-        raise ProviderExecutionError(f"Could not start CLI provider: {exc}") from exc
+        raise ProviderExecutionError(
+            f"Could not start CLI provider ({type(exc).__name__})"
+        ) from exc
 
 
 @dataclass(slots=True)
@@ -118,6 +120,7 @@ class OpenCodeCLIProvider:
         credential_source_json_path: str | None = None,
         credential_target_env: str | None = None,
         isolate_credentials: bool = True,
+        strip_proxy_environment: bool = True,
         opencode_config: dict[str, object] | None = None,
     ) -> None:
         if "/" not in model:
@@ -139,6 +142,7 @@ class OpenCodeCLIProvider:
         self.credential_source_json_path = credential_source_json_path
         self.credential_target_env = credential_target_env
         self.isolate_credentials = isolate_credentials
+        self.strip_proxy_environment = strip_proxy_environment
         self.opencode_config = dict(opencode_config or {})
         self.last_usage: dict[str, Any] | None = None
 
@@ -177,7 +181,8 @@ class OpenCodeCLIProvider:
             "https_proxy",
             "all_proxy",
         ):
-            environment.pop(key, None)
+            if self.strip_proxy_environment:
+                environment.pop(key, None)
         config = dict(self.opencode_config)
         config["permission"] = {"*": "deny"}
         environment["OPENCODE_CONFIG_CONTENT"] = json.dumps(config, separators=(",", ":"))
@@ -259,7 +264,7 @@ def _parse_opencode_jsonl(output: str) -> str:
                 if isinstance(message, str) and message:
                     provider_error = message[-1000:]
     if provider_error and not chunks:
-        raise ProviderExecutionError(f"OpenCode provider failed: {provider_error}")
+        raise ProviderExecutionError("OpenCode provider reported an error")
     return "".join(chunks).strip()
 
 
