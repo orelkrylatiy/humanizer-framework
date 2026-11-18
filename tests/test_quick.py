@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import patch
 
 from humanizer_framework import (
     ClaudeCodeCLIProvider,
@@ -92,7 +93,10 @@ def test_claude_cli_empty_response_fails(monkeypatch):
 
     monkeypatch.setattr(claude_cli_module, "_run_command", fake_run)
     provider = ClaudeCodeCLIProvider()
-    with pytest.raises(ProviderExecutionError):
+    with (
+        patch("humanizer_framework.providers.cli._resolve_executable", return_value="claude"),
+        pytest.raises(ProviderExecutionError, match="empty"),
+    ):
         provider.generate([{"role": "user", "content": "hi"}])
 
 
@@ -104,7 +108,8 @@ def test_claude_cli_returns_text(monkeypatch):
         return subprocess.CompletedProcess(command, returncode=0, stdout="Готовый ответ\n")
 
     monkeypatch.setattr(claude_cli_module, "_run_command", fake_run)
-    out = ClaudeCodeCLIProvider().generate(
-        [{"role": "system", "content": "policy"}, {"role": "user", "content": "задача"}]
-    )
+    with patch("humanizer_framework.providers.cli._resolve_executable", return_value="claude"):
+        out = ClaudeCodeCLIProvider().generate(
+            [{"role": "system", "content": "policy"}, {"role": "user", "content": "задача"}]
+        )
     assert out == "Готовый ответ"

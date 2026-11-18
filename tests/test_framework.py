@@ -148,6 +148,7 @@ def test_repair_cannot_trade_soft_warnings_for_a_hard_failure():
         channel="profi",
         message_type="outreach",
         profile="math",
+        conversation=[],
         context={"client_name": "Ольга"},
     )
     result = CommunicationFramework(provider, provider_attempts=1).generate(request)
