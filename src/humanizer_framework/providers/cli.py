@@ -199,9 +199,7 @@ class OpenCodeCLIProvider:
                 check=False,
             )
         if completed.returncode != 0:
-            raise ProviderExecutionError(
-                f"OpenCode CLI завершился с кодом {completed.returncode}"
-            )
+            raise ProviderExecutionError(f"OpenCode CLI завершился с кодом {completed.returncode}")
         output = _parse_opencode_jsonl(completed.stdout)
         self.last_usage = _extract_opencode_usage(completed.stdout)
         if not output:

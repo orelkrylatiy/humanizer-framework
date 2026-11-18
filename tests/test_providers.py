@@ -391,7 +391,8 @@ def test_opencode_nonzero_process_never_returns_partial_answer():
     from humanizer_framework.errors import ProviderExecutionError
 
     completed = subprocess.CompletedProcess(
-        args=[], returncode=7,
+        args=[],
+        returncode=7,
         stdout='{"type":"text","part":{"text":"частичный ответ"}}',
         stderr="Authorization Bearer hidden-key",
     )
@@ -408,10 +409,12 @@ def test_opencode_nonzero_process_never_returns_partial_answer():
 def test_opencode_error_event_fails_even_after_partial_text():
     from humanizer_framework.errors import ProviderExecutionError
 
-    output = "\n".join([
-        '{"type":"text","part":{"type":"text","text":"Начало"}}',
-        '{"type":"error","error":{"message":"Bearer hidden-key"}}',
-    ])
+    output = "\n".join(
+        [
+            '{"type":"text","part":{"type":"text","text":"Начало"}}',
+            '{"type":"error","error":{"message":"Bearer hidden-key"}}',
+        ]
+    )
     with pytest.raises(ProviderExecutionError) as exc:
         _parse_opencode_jsonl(output)
     assert "hidden-key" not in str(exc.value)
