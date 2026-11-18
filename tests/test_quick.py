@@ -66,6 +66,7 @@ def test_default_provider_chain_order():
     chain = default_provider()
     assert isinstance(chain, HarnessProvider)
     legs = [(type(p).__name__, getattr(p, "model", None)) for p in chain.providers]
+    # GLM-first chain (решение Макса 28.10.2026): Z.AI first, OpenCode fallback.
     assert legs == [
         ("ZaiAnthropicProvider", "glm-5.3-flash"),
         ("OpenCodeCLIProvider", "openai/gpt-5.6-luna-fast"),
