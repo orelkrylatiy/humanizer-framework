@@ -1,0 +1,21 @@
+{
+  "name": "humanizer",
+  "owner": {
+    "name": "humanizer-framework contributors"
+  },
+  "description": "Русский навык Humanizer для Claude Code.",
+  "plugins": [
+    {
+      "name": "humanizer",
+      "source": "./",
+      "description": "Убирает шаблоны AI из текста, сохраняя факты, смысл и голос автора.",
+      "license": "MIT",
+      "keywords": [
+        "writing",
+        "editing",
+        "russian",
+        "humanize"
+      ]
+    }
+  ]
+}

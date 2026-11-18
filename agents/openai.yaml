@@ -1,0 +1,4 @@
+interface:
+  display_name: "Humanizer"
+  short_description: "Живая русская речь без потери фактов"
+  default_prompt: "Используй $humanizer для естественной правки с сохранением смысла."
