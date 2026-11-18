@@ -7,8 +7,7 @@ _LOADED = False
 
 
 def env_file() -> Path:
-    """Location of the framework's key file (repo root .env by default)."""
-
+    """Путь к файлу переменных окружения (обычно .env в корне проекта)."""
     override = os.environ.get("HUMANIZER_ENV_FILE")
     if override:
         return Path(override)
@@ -16,17 +15,12 @@ def env_file() -> Path:
 
 
 def load_env() -> None:
-    """Load KEY=VALUE pairs from the framework's .env into os.environ.
+    """Загружаем KEY=VALUE. Установленные переменные окружения важнее файла.
 
-    Real environment variables always win: values that are already set are
-    never overwritten. A missing file is normal (keys may come from user-env
-    or provider-specific stores instead). Safe to call repeatedly.
+    Файл проверяется при каждом вызове. Это позволяет создавать .env после
+    первого вызова, менять путь через HUMАNIZER_ENV_FILE и работать в тестах.
     """
-
     global _LOADED
-    if _LOADED:
-        return
-    _LOADED = True
     try:
         lines = env_file().read_text(encoding="utf-8").splitlines()
     except OSError:
@@ -40,3 +34,4 @@ def load_env() -> None:
         value = value.strip().strip('"').strip("'")
         if key and key not in os.environ:
             os.environ[key] = value
+    _LOADED = True

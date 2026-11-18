@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from ..env import load_env
 from ..errors import ProviderExecutionError
 
-_DEFAULT_KEY_ENV_VARS = ("ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_API_KEY", "ZAI_API_KEY")
+_DEFAULT_KEY_ENV_VARS = ("ZAI_API_KEY", "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_API_KEY")
 
 
 @dataclass(slots=True)
