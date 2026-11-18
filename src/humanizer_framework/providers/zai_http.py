@@ -83,9 +83,7 @@ class ZaiAnthropicProvider:
         except ProviderExecutionError:
             raise
         except Exception as exc:
-            raise ProviderExecutionError(
-                f"zai-http request failed ({type(exc).__name__})"
-            ) from exc
+            raise ProviderExecutionError(f"zai-http request failed ({type(exc).__name__})") from exc
         usage = data.get("usage")
         self.last_usage = dict(usage) if isinstance(usage, dict) else None
         text = "".join(

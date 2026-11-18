@@ -54,9 +54,7 @@ def _run_command(
             f"CLI provider timed out after {timeout_seconds} seconds"
         ) from exc
     except subprocess.CalledProcessError as exc:
-        raise ProviderExecutionError(
-            f"CLI provider exited with code {exc.returncode}"
-        ) from exc
+        raise ProviderExecutionError(f"CLI provider exited with code {exc.returncode}") from exc
     except OSError as exc:
         raise ProviderExecutionError(
             f"Could not start CLI provider ({type(exc).__name__})"
