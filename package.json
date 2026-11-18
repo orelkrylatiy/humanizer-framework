@@ -1,0 +1,17 @@
+{
+  "name": "humanizer-framework-skill",
+  "private": true,
+  "description": "Убирает шаблоны AI из текста, сохраняя факты, смысл и голос автора.",
+  "license": "MIT",
+  "repository": "github:orelkrylatiy/humanizer-framework",
+  "keywords": [
+    "pi-package",
+    "writing",
+    "russian"
+  ],
+  "pi": {
+    "skills": [
+      "./"
+    ]
+  }
+}

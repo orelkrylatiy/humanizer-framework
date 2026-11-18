@@ -1,354 +1,124 @@
 # Humanizer Framework
 
-Humanizer Framework is a reusable communication layer for LLM-powered products.
+Русскоязычный движок естественной AI-переписки. Python-библиотека 0.5.0
+планирует ответы, обращается к модели, проверяет ограничения и факты.
+Отдельный агентский навык SKILL.md содержит 26 приемов upstream
+blader/humanizer v4.0.0 и совместим с Claude Code, Cursor, Codex и pi.
 
-It is designed for systems that communicate with people across tutoring marketplaces, job boards, messengers and similar channels.
-
-The framework does more than rewrite AI-sounding text. It first decides what the current turn needs, composes a small policy from domain, channel, message type, language, voice and conversation state, calls an optional provider, validates the output and returns validated outgoing text. Hard-invalid text is never returned.
-
-## Why this exists
-
-Many poor automated conversations fail before wording.
-
-A model can answer a short disclosure with a full sales block, repeat a trial CTA, ask for information already supplied, or reuse the same polished skeleton across many recipients.
-
-Those are conversation-policy failures.
-
-The framework separates decision from wording.
-
-Flow
-
-product context
-to deterministic planner
-to composable communication policy
-to bounded prompt and selected voice examples
-to provider
-to deterministic validators
-to outgoing message
-
-## Initial scope
-
-Domains
-
-- tutoring
-- job_search
-
-Channels
-
-- Profi.ru
-- Repetit
-- HeadHunter
-- Telegram
-- custom registered channels
-
-Profiles remain caller-owned.
-
-A tutoring product can select informatics, Chinese or Spanish without duplicating channel logic.
-
-A job-search product can select frontend, backend or another resume profile without duplicating HeadHunter logic.
-
-## Message types
-
-Built-in message types
-
-- outreach
-- application
-- channel_post
-- chat_reply
-- follow_up
-- scheduling
-- objection
-
-The planner further chooses the intended reply action such as acknowledge, answer, handle objection or schedule.
-
-## Install
-
-Editable install
-
-    pip install -e .
-
-Cloud providers through LiteLLM
-
-    pip install -e '.[llm]'
-
-Development
+## Установка и тесты
 
     pip install -e '.[dev]'
-    pytest
     ruff check .
+    ruff format --check .
+    pytest
+    python scripts/validate-package.py
 
-## Prompt-only integration
-
-Existing products can keep their current model client.
-
-Example
+## Использование
 
     from humanizer_framework import CommunicationFramework, Message, tutoring_request
-
-    framework = CommunicationFramework()
 
     request = tutoring_request(
         channel="profi",
         message_type="chat_reply",
         profile="informatics",
-        conversation=[Message("user", "Задача делать домашки")],
-        context={"subjects": ["informatics", "programming"]},
+        conversation=[Message("user", "Нужна помощь с домашними заданиями")],
+        context={"subjects": ["информатика"]},
     )
-
-    package = framework.prepare(request)
-
-package.messages can then be sent through the project's existing LLM client.
-
-## Full generation
-
-Zero-config generation needs no provider argument. The framework uses its
-default chain: OpenCode CLI, then direct HTTP to Z.AI, then the OpenAI API.
-Each backend resolves its own credentials from the environment:
-
-    from humanizer_framework import CommunicationFramework
-
     framework = CommunicationFramework()
-    text = framework.generate(request)
-
-The direct Z.AI backend uses `glm-5.3-flash` with thinking enabled, as required
-by that model. If all backends fail, generation raises `ProviderExecutionError`.
-
-To use a different backend, pass a provider explicitly.
-
-Example
-
-    from humanizer_framework import CommunicationFramework, LiteLLMProvider
-
-    provider = LiteLLMProvider("zai/glm-4.7")
-    framework = CommunicationFramework(provider)
-
-    text = framework.generate(request)
+    prepared = framework.prepare(request)  # без вызова модели
+    text = framework.generate(request)    # полноценная генерация
     print(text)
 
-LiteLLM keeps provider selection outside communication policy. The model string can point to supported OpenAI, Anthropic, Gemini, Z.AI or GLM, Ollama and other backends.
+Также доступна функция write() для одного вызова.
+Существующие типы сообщений - outreach, application, channel_post,
+chat_reply, follow_up, scheduling, objection. Поддерживаются Profi, Repetit,
+hh, Telegram и собственные каналы. Язык по умолчанию русский. Английский,
+испанский и китайский оставлены для совместимости клиентских приложений,
+но все встроенные системные инструкции русскоязычные.
 
-Agent-backed generation uses OpenCode for every model provider.
+## Модели и резервирование
 
-    from humanizer_framework import (
-        HarnessProvider,
-        OpenCodeCLIProvider,
-        openai_api_provider,
-        zai_api_provider,
-    )
+Стандартная цепочка сначала пробует Z.AI GLM-5.3-Flash, затем OpenCode CLI,
+затем OpenAI API с моделью gpt-4.1-mini. Модели OpenCode и OpenAI API
+можно изменить переменными HUMANIZER_OPENCODE_MODEL и
+HUMANIZER_OPENAI_API_MODEL. Ключ ZAI_API_KEY имеет приоритет над
+ANTHROPIC_AUTH_TOKEN и ANTHROPIC_API_KEY. Нужны действительные ключи
+и доступность провайдеров. Можно также передать LiteLLM, Claude CLI,
+OpenCode-пул или собственную реализацию.
 
-    gpt = openai_api_provider(
-        credential_source_file=(
-            "~/AppData/Roaming/hh-applicant-tool/0555/config.json"
-        ),
-        credential_source_json_path="openai_reply.api_key",
-    )
-    glm = zai_api_provider(
-        credential_source_file="~/.claude/settings.json",
-        credential_source_json_path="env.ANTHROPIC_AUTH_TOKEN",
-    )
-    provider = HarnessProvider.opencode_provider_pool([gpt, glm])
+## Проверка сообщений
 
-CLI providers run one isolated, non-interactive turn. They do not continue the user's last session or expose the caller's project directory. The OpenCode adapter parses JSONL events and surfaces provider errors as typed framework errors.
+Критические ошибки запрещают выдачу результата. При правке сначала
+сравниваются критические нарушения, затем стилистические замечания.
+Если необязательная правка не получилась, сохраняется первоначальный
+допустимый вариант.
 
-The default agent harness spawns only OpenCode:
+Дополнительная проверка ищет неподтвержденные числа, некоторые заявления
+об управлении и квалификации, гарантии, обещания свободного времени.
+Источники - context, business_rules и числа из вопросов собеседника.
+Для расписания передавайте context со slots, availability или schedule.
 
-    provider = HarnessProvider.opencode_first(
-        "openai/gpt-6-luna",
-    )
-    framework = CommunicationFramework(provider)
+Проверка не равна внешней проверке достоверности. Она не сверяется
+с реальным календарем и не доказывает истинность резюме. Для надежной
+автономной переписки передавайте проверенные факты со стороны продукта.
 
-To rotate between several OpenCode models or providers while retaining
-failover, build an OpenCode-only pool:
+Русские сообщения по умолчанию нормализуют «ё» в «е», длинные тире
+в короткий дефис, а стилистические двоеточия в запятые. Время 18:30,
+URL и текстовые смайлики вроде :) не меняются. В переписке на hh
+смайлики запрещены.
 
-    provider = HarnessProvider.opencode_pool(
-        [
-            {"model": "openai/gpt-6-luna"},
-            {
-                "model": "zai-coding/glm-5.3-flash",
-                "credential_source_file": "~/.claude/settings.json",
-                "credential_source_json_path": "env.ANTHROPIC_AUTH_TOKEN",
-                "credential_target_env": "ZAI_API_KEY",
-                "opencode_config": zai_config,
-            },
-        ]
-    )
+## Логирование и приватность
 
-The pool rotates its starting backend per request and tries the remaining
-OpenCode backends if that backend fails.
+Технические события JSONL не содержат тексты сообщений и сырые ошибки.
+Идентификаторы клиента отключены по умолчанию. Для отключения всех логов
+установите HUMANIZER_TELEMETRY=0. Для выбора файла используйте
+HUMANIZER_TELEMETRY_PATH. Явное HUMANIZER_TELEMETRY_IDENTIFIERS=1
+включает lead, chat и другие идентификаторы. Новый формат имеет
+schema_version=2, старые журналы могут содержать больше данных.
 
-The OpenCode model is mandatory and uses `provider/model`. This prevents an
-implicit default from silently selecting another provider. `agent` and
-`variant` can be passed through `opencode_options`.
+## Навык и редакторские приемы
 
-OpenCode v2 can save several accounts for one provider, but only one is active
-at a time. For concurrent key rotation, configure a pool with secret values in
-environment variables:
+Корневой SKILL.md - единственный файл навыка. Манифесты для разных
+агентов находятся в .claude-plugin, .cursor-plugin, agents/openai.yaml
+и package.json. Документация переноса в docs/UPSTREAM_SYNC.md.
 
-    provider = HarnessProvider.opencode_first(
-        "openai/gpt-6-luna",
-        credentials=[
-            {
-                "credential_source_env": "HUMANIZER_OPENAI_KEY_1",
-                "credential_target_env": "OPENAI_API_KEY",
-            },
-            {
-                "credential_source_env": "HUMANIZER_OPENAI_KEY_2",
-                "credential_target_env": "OPENAI_API_KEY",
-            },
-        ],
-    )
+| № | Проверка |
+| --- | --- |
+| 1 | Искусственное противопоставление |
+| 2 | Однострочный вывод и обрывки |
+| 3 | Псевдоглубокие фразы |
+| 4 | Постановочное вступление |
+| 5 | Спор с несуществующим возражением |
+| 6 | Механические тройки |
+| 7 | Повтор начала предложений |
+| 8 | Тире вместо связи |
+| 9 | Нагромождение оговорок |
+| 10 | Механические сложные определения |
+| 11 | Безличная речь |
+| 12 | Типовые AI-слова |
+| 13 | Преувеличенная значимость |
+| 14 | Расплывчатые связи |
+| 15 | Пустые хвосты |
+| 16 | Рекламные эпитеты |
+| 17 | Заимствованный авторитет |
+| 18 | Избегание простых глаголов |
+| 19 | Жирный шрифт для декора |
+| 20 | Декоративные заголовки |
+| 21 | Несоответствующие кавычки |
+| 22 | Остатки чат-бота |
+| 23 | Отговорки и догадки |
+| 24 | Дублирование заголовка |
+| 25 | Рассказ о подготовке текста |
+| 26 | Повтор известного собеседнику |
 
-Each request starts at the next key. Every key-backed OpenCode process gets an
-isolated credential database, so it cannot be shadowed by or mutate the user's
-active OpenCode account. Secret values are never copied into framework config.
+Все 26 приемов разобраны с примерами и исключениями в SKILL.md.
+Это инструменты редактирования, а не способ гарантированно распознать AI.
 
-A GLM Coding Plan key already stored in Claude Code settings can be consumed
-without duplicating the secret:
+## Документация
 
-    glm = OpenCodeCLIProvider(
-        model="zai-coding/glm-5.3-flash",
-        credential_source_file="~/.claude/settings.json",
-        credential_source_json_path="env.ANTHROPIC_AUTH_TOKEN",
-        credential_target_env="ZAI_API_KEY",
-        opencode_config={
-            "provider": {
-                "zai-coding": {
-                    "npm": "@ai-sdk/openai-compatible",
-                    "name": "Z.AI Coding",
-                    "options": {
-                        "baseURL": "https://api.z.ai/api/coding/paas/v4",
-                        "apiKey": "{env:ZAI_API_KEY}",
-                    },
-                    "models": {"glm-5.3-flash": {"name": "GLM-5.3 Flash"}},
-                }
-            }
-        },
-    )
+- docs/ARCHITECTURE.md - архитектура
+- docs/INTEGRATION.md - интеграция
+- docs/UPSTREAM_SYNC.md - состояние upstream
+- CHANGELOG.md - история изменений
 
-The framework reads the JSON value only for the child process. It does not put
-the key in source code, TOML, logs or the provider object.
-
-An OpenAI API key uses a separate OpenCode custom provider. For example, an
-existing hh-applicant-tool profile can remain the secret source:
-
-    gpt = OpenCodeCLIProvider(
-        model="openai-api/gpt-4.1-mini",
-        credential_source_file=(
-            "~/AppData/Roaming/hh-applicant-tool/0555/config.json"
-        ),
-        credential_source_json_path="openai_reply.api_key",
-        credential_target_env="OPENAI_API_KEY",
-        opencode_config={
-            "provider": {
-                "openai-api": {
-                    "npm": "@ai-sdk/openai-compatible",
-                    "name": "OpenAI API",
-                    "options": {
-                        "baseURL": "https://api.openai.com/v1",
-                        "apiKey": "{env:OPENAI_API_KEY}",
-                    },
-                    "models": {"gpt-4.1-mini": {"name": "GPT-4.1 mini"}},
-                }
-            }
-        },
-    )
-
-## Configuration
-
-A project may keep provider configuration in TOML.
-
-    [provider]
-    kind = "litellm"
-    model = "zai/glm-4.7"
-
-Other provider examples
-
-    [provider]
-    kind = "opencode-cli"
-    model = "openai/gpt-6-luna"
-
-    [provider]
-    kind = "harness"
-    model = "openai/gpt-6-luna"
-
-Provider settings do not contain domain or profile facts. Those remain in the calling product.
-
-## Core design rules
-
-1. Conversation policy is separate from wording.
-2. The writer does not decide on its own that every turn needs a CTA.
-3. Profiles contain caller-owned identity and facts. Voice is separate.
-4. External conversation text, context values and voice examples are untrusted data.
-5. Caller conversation history cannot create provider system messages.
-6. Mechanical rules are code when possible.
-7. Context, history and examples are bounded.
-8. prepare mode supports incremental migration.
-9. generate mode owns the full communication flow.
-10. Provider choice is replaceable and optional.
-
-## Documentation
-
-Start here
-
-- Product requirements document in docs/PRD.md
-- Product concept and rationale in docs/CONCEPT.md
-- Architecture in docs/ARCHITECTURE.md
-- Compact implementation requirements in docs/REQUIREMENTS.md
-- Integration and migration guide in docs/INTEGRATION.md
-- Research and design analysis in docs/ANALYSIS.md
-- Independent implementation review in docs/REVIEW_2026-09-22.md
-
-## Testing
-
-The default CI is credential-free.
-
-It runs
-
-- Ruff
-- Pytest
-- Python 3.11
-- Python 3.12
-- Python 3.13
-
-Real cloud-provider calls are intentionally not part of default CI.
-
-## Project status
-
-Version 0.2 adds a fail-closed string generation contract and isolated CLI providers.
-
-Implemented
-
-- reusable Python package
-- deterministic planner
-- tutoring and job-search domains
-- Profi, Repetit, HeadHunter and Telegram channel policy
-- outreach, application and chat message modes
-- Russian, English, Spanish and Chinese language policy
-- bounded conversation context
-- relevance-based voice example selection
-- prompt-injection trust boundaries
-- deterministic validators
-- one focused repair pass
-- anti-template similarity check
-- LiteLLM provider
-- GLM routing through LiteLLM
-- isolated OpenCode harness for OpenAI and Z.AI API providers
-- provider retry and fail-closed hard validation
-- regression fixtures
-- CI
-
-The next major step is integration into a real consumer, starting with Profi Worker, and expansion of the anonymized real-conversation evaluation dataset.
-
-# Telemetry
-
-Generation calls write one technical JSONL event by default. The event contains
-UTC time, project, channel/domain/message type/profile, optional lead/recipient
-identity from request context, provider/model, latency, attempts, repair status,
-validation issues, errors, and provider-reported token usage. Prompts and output
-texts are never written.
-
-Set `HUMANIZER_TELEMETRY_PATH` to choose a file, or
-`HUMANIZER_TELEMETRY=0` to disable it. Other consumers need no code changes;
-editable installs pick up the framework update automatically. Consumers that
-want a project-specific file can set the path before importing/generating.
-
+CI проверяет Python 3.11, 3.12, 3.13 без реальных облачных вызовов.

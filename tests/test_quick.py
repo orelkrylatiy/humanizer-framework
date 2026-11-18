@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import patch
 
 from humanizer_framework import (
     ClaudeCodeCLIProvider,
@@ -25,14 +26,14 @@ def test_write_returns_validated_text_and_sends_goal():
         domain="tutoring",
         message_type="outreach",
         language="ru",
-        facts={"client_name": "Ольга"},
+        facts={"client_name": "Ольга", "grades": "5-9"},
         provider=provider,
     )
     assert isinstance(result, str)
     assert result.valid
     assert "математик" in result
     goal_block = "\n".join(m["content"] for m in provider.calls[0])
-    assert "Message goal: Первый отклик репетитора математики" in goal_block
+    assert "Цель сообщения - Первый отклик репетитора математики" in goal_block
 
 
 def test_write_maps_dialogue_roles():
@@ -66,8 +67,8 @@ def test_default_provider_chain_order():
     assert isinstance(chain, HarnessProvider)
     legs = [(type(p).__name__, getattr(p, "model", None)) for p in chain.providers]
     assert legs == [
-        ("OpenCodeCLIProvider", "openai/gpt-5.6-luna-fast"),
         ("ZaiAnthropicProvider", "glm-5.3-flash"),
+        ("OpenCodeCLIProvider", "openai/gpt-5.6-luna-fast"),
         ("OpenCodeCLIProvider", "openai-api/gpt-4.1-mini"),
     ]
 
@@ -75,7 +76,7 @@ def test_default_provider_chain_order():
 def test_default_provider_opencode_model_override(monkeypatch):
     monkeypatch.setenv("HUMANIZER_OPENCODE_MODEL", "openai/gpt-6-mini")
     chain = default_provider()
-    assert chain.providers[0].model == "openai/gpt-6-mini"
+    assert chain.providers[1].model == "openai/gpt-6-mini"
 
 
 def test_claude_cli_command_build():
@@ -92,7 +93,10 @@ def test_claude_cli_empty_response_fails(monkeypatch):
 
     monkeypatch.setattr(claude_cli_module, "_run_command", fake_run)
     provider = ClaudeCodeCLIProvider()
-    with pytest.raises(ProviderExecutionError):
+    with (
+        patch("humanizer_framework.providers.cli._resolve_executable", return_value="claude"),
+        pytest.raises(ProviderExecutionError, match="empty"),
+    ):
         provider.generate([{"role": "user", "content": "hi"}])
 
 
@@ -104,7 +108,8 @@ def test_claude_cli_returns_text(monkeypatch):
         return subprocess.CompletedProcess(command, returncode=0, stdout="Готовый ответ\n")
 
     monkeypatch.setattr(claude_cli_module, "_run_command", fake_run)
-    out = ClaudeCodeCLIProvider().generate(
-        [{"role": "system", "content": "policy"}, {"role": "user", "content": "задача"}]
-    )
+    with patch("humanizer_framework.providers.cli._resolve_executable", return_value="claude"):
+        out = ClaudeCodeCLIProvider().generate(
+            [{"role": "system", "content": "policy"}, {"role": "user", "content": "задача"}]
+        )
     assert out == "Готовый ответ"

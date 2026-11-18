@@ -48,7 +48,7 @@ def write(
     active = framework
     if active is None:
         active = CommunicationFramework(provider if provider is not None else default_provider())
-    rules = [f"Message goal: {what}", *(business_rules or [])]
+    rules = [f"Цель сообщения - {what}", *(business_rules or [])]
     request = CommunicationRequest(
         channel=channel,
         domain=domain,

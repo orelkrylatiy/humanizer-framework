@@ -211,9 +211,7 @@ def test_english_words_containing_smiley_glyphs_are_not_smileys():
 
     from humanizer_framework.validators import _has_smiley
 
-    assert not _has_smiley(
-        "I am writing to express my interest; my experience fits the role."
-    )
+    assert not _has_smiley("I am writing to express my interest; my experience fits the role.")
     assert _has_smiley("Sounds great :)")
     assert _has_smiley("lol XD")
 
@@ -225,3 +223,16 @@ def test_smiley_allowed_for_informal_russian_channels():
     assert constraints.forbid_smileys is False
     issues = validate_output("Понял, задача делать домашки :)", request, current_plan, constraints)
     assert not any(issue.code == "forbidden_smiley" for issue in issues)
+
+
+def test_process_commentary_is_hard_invalid_in_any_channel():
+    request = _hh_request()
+    current_plan = plan(request)
+    constraints = default_constraints(request, current_plan)
+    issues = validate_output(
+        "Сначала сверю информацию. По вопросу отвечу отдельно.",
+        request,
+        current_plan,
+        constraints,
+    )
+    assert any(issue.code == "meta_prefix" and issue.hard for issue in issues)

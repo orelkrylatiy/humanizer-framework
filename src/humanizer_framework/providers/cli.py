@@ -54,11 +54,11 @@ def _run_command(
             f"CLI provider timed out after {timeout_seconds} seconds"
         ) from exc
     except subprocess.CalledProcessError as exc:
-        stderr = (exc.stderr or "").strip()
-        detail = stderr[-1000:] if stderr else f"exit code {exc.returncode}"
-        raise ProviderExecutionError(f"CLI provider failed: {detail}") from exc
+        raise ProviderExecutionError(f"CLI provider exited with code {exc.returncode}") from exc
     except OSError as exc:
-        raise ProviderExecutionError(f"Could not start CLI provider: {exc}") from exc
+        raise ProviderExecutionError(
+            f"Could not start CLI provider ({type(exc).__name__})"
+        ) from exc
 
 
 @dataclass(slots=True)
@@ -118,6 +118,7 @@ class OpenCodeCLIProvider:
         credential_source_json_path: str | None = None,
         credential_target_env: str | None = None,
         isolate_credentials: bool = True,
+        strip_proxy_environment: bool = True,
         opencode_config: dict[str, object] | None = None,
     ) -> None:
         if "/" not in model:
@@ -126,13 +127,9 @@ class OpenCodeCLIProvider:
         if source_count > 1:
             raise ValueError("Use only one credential source")
         if bool(source_count) != bool(credential_target_env):
-            raise ValueError(
-                "A credential source and credential_target_env must be set together"
-            )
+            raise ValueError("A credential source and credential_target_env must be set together")
         if credential_source_file and not credential_source_json_path:
-            raise ValueError(
-                "credential_source_json_path is required with credential_source_file"
-            )
+            raise ValueError("credential_source_json_path is required with credential_source_file")
         self.model = model
         self.agent = agent
         self.variant = variant
@@ -143,6 +140,7 @@ class OpenCodeCLIProvider:
         self.credential_source_json_path = credential_source_json_path
         self.credential_target_env = credential_target_env
         self.isolate_credentials = isolate_credentials
+        self.strip_proxy_environment = strip_proxy_environment
         self.opencode_config = dict(opencode_config or {})
         self.last_usage: dict[str, Any] | None = None
 
@@ -181,12 +179,11 @@ class OpenCodeCLIProvider:
             "https_proxy",
             "all_proxy",
         ):
-            environment.pop(key, None)
+            if self.strip_proxy_environment:
+                environment.pop(key, None)
         config = dict(self.opencode_config)
         config["permission"] = {"*": "deny"}
-        environment["OPENCODE_CONFIG_CONTENT"] = json.dumps(
-            config, separators=(",", ":")
-        )
+        environment["OPENCODE_CONFIG_CONTENT"] = json.dumps(config, separators=(",", ":"))
         credential = self._load_credential()
         if credential is not None and self.credential_target_env:
             environment[self.credential_target_env] = credential
@@ -201,6 +198,8 @@ class OpenCodeCLIProvider:
                 env=environment,
                 check=False,
             )
+        if completed.returncode != 0:
+            raise ProviderExecutionError(f"OpenCode CLI завершился с кодом {completed.returncode}")
         output = _parse_opencode_jsonl(completed.stdout)
         self.last_usage = _extract_opencode_usage(completed.stdout)
         if not output:
@@ -221,9 +220,7 @@ class OpenCodeCLIProvider:
         if self.credential_source_file and self.credential_source_json_path:
             try:
                 value: object = json.loads(
-                    Path(self.credential_source_file)
-                    .expanduser()
-                    .read_text(encoding="utf-8")
+                    Path(self.credential_source_file).expanduser().read_text(encoding="utf-8")
                 )
                 for key in self.credential_source_json_path.split("."):
                     if not isinstance(value, dict):
@@ -234,9 +231,7 @@ class OpenCodeCLIProvider:
                     "Could not load the configured OpenCode credential source"
                 ) from exc
             if not isinstance(value, str) or not value:
-                raise ProviderExecutionError(
-                    "The configured OpenCode credential source is empty"
-                )
+                raise ProviderExecutionError("The configured OpenCode credential source is empty")
             return value
         return None
 
@@ -268,8 +263,8 @@ def _parse_opencode_jsonl(output: str) -> str:
                 message = error.get("message")
                 if isinstance(message, str) and message:
                     provider_error = message[-1000:]
-    if provider_error and not chunks:
-        raise ProviderExecutionError(f"OpenCode provider failed: {provider_error}")
+    if provider_error:
+        raise ProviderExecutionError("OpenCode provider reported an error")
     return "".join(chunks).strip()
 
 
@@ -320,9 +315,7 @@ def _merge_usage(totals: dict[str, int | float], usage: dict[str, Any]) -> None:
         if isinstance(value, dict):
             if key == "cache":
                 for cache_key, cache_value in value.items():
-                    if isinstance(cache_value, (int, float)) and not isinstance(
-                        cache_value, bool
-                    ):
+                    if isinstance(cache_value, (int, float)) and not isinstance(cache_value, bool):
                         name = f"cache_{cache_key}_tokens"
                         totals[name] = totals.get(name, 0) + cache_value
             continue

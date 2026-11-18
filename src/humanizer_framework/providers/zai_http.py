@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from ..env import load_env
 from ..errors import ProviderExecutionError
 
-_DEFAULT_KEY_ENV_VARS = ("ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_API_KEY", "ZAI_API_KEY")
+_DEFAULT_KEY_ENV_VARS = ("ZAI_API_KEY", "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_API_KEY")
 
 
 @dataclass(slots=True)
@@ -83,7 +83,7 @@ class ZaiAnthropicProvider:
         except ProviderExecutionError:
             raise
         except Exception as exc:
-            raise ProviderExecutionError(f"zai-http request failed: {exc}") from exc
+            raise ProviderExecutionError(f"zai-http request failed ({type(exc).__name__})") from exc
         usage = data.get("usage")
         self.last_usage = dict(usage) if isinstance(usage, dict) else None
         text = "".join(

@@ -262,7 +262,7 @@ def test_zai_http_resolves_key_from_env_chain_without_exposing_it(monkeypatch):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     monkeypatch.delenv("ZAI_API_KEY", raising=False)
     provider = ZaiAnthropicProvider()
-    with pytest.raises(Exception, match="ANTHROPIC_AUTH_TOKEN"):
+    with pytest.raises(Exception, match="ZAI_API_KEY"):
         provider._resolve_key()
     monkeypatch.setenv("ZAI_API_KEY", "secret-value")
     assert provider._resolve_key() == "secret-value"
@@ -321,3 +321,100 @@ def test_zai_http_empty_text_and_http_errors_raise_provider_error(monkeypatch):
         pytest.raises(ProviderExecutionError, match="zai-http request failed"),
     ):
         provider.generate([{"role": "user", "content": "задача"}])
+
+
+def test_zai_specific_key_takes_precedence_over_anthropic_key(monkeypatch):
+    from humanizer_framework.providers import ZaiAnthropicProvider
+
+    monkeypatch.setenv("ZAI_API_KEY", "correct-zai-key")
+    monkeypatch.setenv("ANTHROPIC_AUTH_TOKEN", "some-other-key")
+    assert ZaiAnthropicProvider()._resolve_key() == "correct-zai-key"
+
+
+def test_harness_snapshot_is_thread_local_after_pool_rotation():
+    from concurrent.futures import ThreadPoolExecutor
+    from humanizer_framework.telemetry import provider_snapshot
+
+    class Stub:
+        def __init__(self, name):
+            self.name = name
+            self.model = name + "-model"
+            self.last_usage = {"total_tokens": 1}
+
+        def generate(self, messages, **kwargs):
+            return self.name
+
+    harness = HarnessProvider([ProviderPool([Stub("alpha"), Stub("beta")])])
+
+    def task(_):
+        message = harness.generate([])
+        return message, provider_snapshot(harness)["provider"]
+
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        results = list(pool.map(task, range(12)))
+    assert {item[0] for item in results} == {"alpha", "beta"}
+    assert all(text == provider for text, provider in results)
+
+
+def test_opencode_can_retain_proxy_with_explicit_opt_in(monkeypatch):
+    monkeypatch.setenv("HTTPS_PROXY", "http://company-proxy.test")
+    completed = subprocess.CompletedProcess(
+        args=[], returncode=0, stdout='{"type":"text","part":{"text":"ответ"}}', stderr=""
+    )
+    with (
+        patch("humanizer_framework.providers.cli._resolve_executable", return_value="opencode"),
+        patch("humanizer_framework.providers.cli._run_command", return_value=completed) as run,
+    ):
+        provider = OpenCodeCLIProvider(
+            model="openai/gpt-5.6-luna-fast",
+            strip_proxy_environment=False,
+        )
+        assert provider.generate([{"role": "user", "content": "Ответь"}]) == "ответ"
+    assert run.call_args.kwargs["env"]["HTTPS_PROXY"] == "http://company-proxy.test"
+
+
+def test_cli_exception_never_includes_stderr_secret():
+    from humanizer_framework.providers.cli import _run_command
+
+    failed = subprocess.CalledProcessError(
+        1, ["fake-cli"], stderr="Authorization Bearer secret-key"
+    )
+    with (
+        patch("humanizer_framework.providers.cli.subprocess.run", side_effect=failed),
+        pytest.raises(Exception) as exc,
+    ):
+        _run_command(["fake-cli"], prompt="", timeout_seconds=1)
+    assert "secret-key" not in str(exc.value)
+
+
+def test_opencode_nonzero_process_never_returns_partial_answer():
+    from humanizer_framework.errors import ProviderExecutionError
+
+    completed = subprocess.CompletedProcess(
+        args=[],
+        returncode=7,
+        stdout='{"type":"text","part":{"text":"частичный ответ"}}',
+        stderr="Authorization Bearer hidden-key",
+    )
+    provider = OpenCodeCLIProvider(model="openai/gpt-5.6-luna-fast")
+    with (
+        patch("humanizer_framework.providers.cli._resolve_executable", return_value="opencode"),
+        patch("humanizer_framework.providers.cli._run_command", return_value=completed),
+        pytest.raises(ProviderExecutionError) as exc,
+    ):
+        provider.generate([{"role": "user", "content": "Ответь"}])
+    assert "hidden-key" not in str(exc.value)
+
+
+def test_opencode_error_event_fails_even_after_partial_text():
+    from humanizer_framework.errors import ProviderExecutionError
+
+    output = "\n".join(
+        [
+            '{"type":"text","part":{"type":"text","text":"Начало"}}',
+            '{"type":"error","error":{"message":"Bearer hidden-key"}}',
+        ]
+    )
+    with pytest.raises(ProviderExecutionError) as exc:
+        _parse_opencode_jsonl(output)
+    assert "hidden-key" not in str(exc.value)
