@@ -25,14 +25,14 @@ def test_write_returns_validated_text_and_sends_goal():
         domain="tutoring",
         message_type="outreach",
         language="ru",
-        facts={"client_name": "Ольга"},
+        facts={"client_name": "Ольга", "grades": "5-9"},
         provider=provider,
     )
     assert isinstance(result, str)
     assert result.valid
     assert "математик" in result
     goal_block = "\n".join(m["content"] for m in provider.calls[0])
-    assert "Message goal: Первый отклик репетитора математики" in goal_block
+    assert "Цель сообщения - Первый отклик репетитора математики" in goal_block
 
 
 def test_write_maps_dialogue_roles():
@@ -66,8 +66,8 @@ def test_default_provider_chain_order():
     assert isinstance(chain, HarnessProvider)
     legs = [(type(p).__name__, getattr(p, "model", None)) for p in chain.providers]
     assert legs == [
-        ("OpenCodeCLIProvider", "openai/gpt-5.6-luna-fast"),
         ("ZaiAnthropicProvider", "glm-5.3-flash"),
+        ("OpenCodeCLIProvider", "openai/gpt-5.6-luna-fast"),
         ("OpenCodeCLIProvider", "openai-api/gpt-4.1-mini"),
     ]
 
@@ -75,7 +75,7 @@ def test_default_provider_chain_order():
 def test_default_provider_opencode_model_override(monkeypatch):
     monkeypatch.setenv("HUMANIZER_OPENCODE_MODEL", "openai/gpt-6-mini")
     chain = default_provider()
-    assert chain.providers[0].model == "openai/gpt-6-mini"
+    assert chain.providers[1].model == "openai/gpt-6-mini"
 
 
 def test_claude_cli_command_build():

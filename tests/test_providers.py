@@ -262,7 +262,7 @@ def test_zai_http_resolves_key_from_env_chain_without_exposing_it(monkeypatch):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     monkeypatch.delenv("ZAI_API_KEY", raising=False)
     provider = ZaiAnthropicProvider()
-    with pytest.raises(Exception, match="ANTHROPIC_AUTH_TOKEN"):
+    with pytest.raises(Exception, match="ZAI_API_KEY"):
         provider._resolve_key()
     monkeypatch.setenv("ZAI_API_KEY", "secret-value")
     assert provider._resolve_key() == "secret-value"
@@ -321,3 +321,36 @@ def test_zai_http_empty_text_and_http_errors_raise_provider_error(monkeypatch):
         pytest.raises(ProviderExecutionError, match="zai-http request failed"),
     ):
         provider.generate([{"role": "user", "content": "задача"}])
+
+
+def test_zai_specific_key_takes_precedence_over_anthropic_key(monkeypatch):
+    from humanizer_framework.providers import ZaiAnthropicProvider
+
+    monkeypatch.setenv("ZAI_API_KEY", "correct-zai-key")
+    monkeypatch.setenv("ANTHROPIC_AUTH_TOKEN", "some-other-key")
+    assert ZaiAnthropicProvider()._resolve_key() == "correct-zai-key"
+
+
+def test_harness_snapshot_is_thread_local_after_pool_rotation():
+    from concurrent.futures import ThreadPoolExecutor
+    from humanizer_framework.telemetry import provider_snapshot
+
+    class Stub:
+        def __init__(self, name):
+            self.name = name
+            self.model = name + "-model"
+            self.last_usage = {"total_tokens": 1}
+
+        def generate(self, messages, **kwargs):
+            return self.name
+
+    harness = HarnessProvider([ProviderPool([Stub("alpha"), Stub("beta")])])
+
+    def task(_):
+        message = harness.generate([])
+        return message, provider_snapshot(harness)["provider"]
+
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        results = list(pool.map(task, range(12)))
+    assert {item[0] for item in results} == {"alpha", "beta"}
+    assert all(text == provider for text, provider in results)

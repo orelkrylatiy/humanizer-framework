@@ -42,4 +42,4 @@ def test_hh_channel_policy_forbids_smileys():
         conversation=[Message("user", "Когда удобно созвониться?")],
     )
     policy = render_policy(request, plan(request))
-    assert "No smileys" in policy
+    assert "без смайликов" in policy

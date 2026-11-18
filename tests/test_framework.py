@@ -134,3 +134,57 @@ def test_prepare_works_without_provider():
     )
     package = framework.prepare(request)
     assert package.plan.action == "pitch"
+
+
+def test_repair_cannot_trade_soft_warnings_for_a_hard_failure():
+    original = (
+        "Отличный вопрос. Давайте разберемся. Ольга, могу помочь с домашними "
+        "заданиями. Ольга, будем разбирать задачи по школьной программе и "
+        "проверять, что получилось. Если какое-то упражнение не выходит, "
+        "вернемся к нему и спокойно разберем."
+    )
+    provider = MockProvider([original, "Ольга, гарантирую результат."])
+    request = tutoring_request(
+        channel="profi",
+        message_type="outreach",
+        profile="math",
+        context={"client_name": "Ольга"},
+    )
+    result = CommunicationFramework(provider, provider_attempts=1).generate(request)
+    assert result.valid
+    assert result.text == original
+    assert result.rewritten is False
+    assert len(provider.calls) == 2
+
+
+def test_soft_issue_with_failed_optional_repair_returns_original():
+    initial = "Отличный вопрос. Можно постепенно разбирать домашние задания."
+    provider = MockProvider([initial])
+    request = tutoring_request(
+        channel="profi",
+        message_type="chat_reply",
+        profile="math",
+        conversation=[Message("user", "Нужно делать домашку")],
+    )
+    result = CommunicationFramework(
+        provider, provider_attempts=1, retry_delay_seconds=0
+    ).generate(request)
+    assert result == initial
+    assert result.valid
+    assert result.rewritten is False
+
+
+def test_repairs_and_system_instructions_are_in_russian():
+    request = tutoring_request(
+        channel="profi",
+        message_type="chat_reply",
+        profile="math",
+        conversation=[Message("user", "Нужно делать домашку")],
+    )
+    provider = MockProvider([
+        "Отличный вопрос. Могу помочь.",
+        "Да, домашние задания можно разбирать по мере необходимости.",
+    ])
+    CommunicationFramework(provider, provider_attempts=1).generate(request)
+    assert "Перепиши только исходящее сообщение" in provider.calls[1][-1]["content"]
+    assert "Напиши одно исходящее сообщение" in provider.calls[0][0]["content"]
