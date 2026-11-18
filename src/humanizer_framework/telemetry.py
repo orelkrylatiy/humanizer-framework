@@ -63,7 +63,9 @@ def _request_fields(request: Any) -> dict[str, Any]:
 def provider_snapshot(provider: Any) -> dict[str, Any]:
     actual = getattr(provider, "last_provider", None) or provider
     model = getattr(provider, "last_model", None) or getattr(actual, "model", None)
-    name = getattr(provider, "last_provider_name", None) or getattr(actual, "name", type(actual).__name__)
+    name = getattr(provider, "last_provider_name", None) or getattr(
+        actual, "name", type(actual).__name__
+    )
     usage = getattr(provider, "last_usage", None) or getattr(actual, "last_usage", None)
     errors = getattr(provider, "last_errors", None) or getattr(actual, "last_errors", None)
     result: dict[str, Any] = {"provider": name}

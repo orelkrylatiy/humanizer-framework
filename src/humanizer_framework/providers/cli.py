@@ -126,13 +126,9 @@ class OpenCodeCLIProvider:
         if source_count > 1:
             raise ValueError("Use only one credential source")
         if bool(source_count) != bool(credential_target_env):
-            raise ValueError(
-                "A credential source and credential_target_env must be set together"
-            )
+            raise ValueError("A credential source and credential_target_env must be set together")
         if credential_source_file and not credential_source_json_path:
-            raise ValueError(
-                "credential_source_json_path is required with credential_source_file"
-            )
+            raise ValueError("credential_source_json_path is required with credential_source_file")
         self.model = model
         self.agent = agent
         self.variant = variant
@@ -184,9 +180,7 @@ class OpenCodeCLIProvider:
             environment.pop(key, None)
         config = dict(self.opencode_config)
         config["permission"] = {"*": "deny"}
-        environment["OPENCODE_CONFIG_CONTENT"] = json.dumps(
-            config, separators=(",", ":")
-        )
+        environment["OPENCODE_CONFIG_CONTENT"] = json.dumps(config, separators=(",", ":"))
         credential = self._load_credential()
         if credential is not None and self.credential_target_env:
             environment[self.credential_target_env] = credential
@@ -221,9 +215,7 @@ class OpenCodeCLIProvider:
         if self.credential_source_file and self.credential_source_json_path:
             try:
                 value: object = json.loads(
-                    Path(self.credential_source_file)
-                    .expanduser()
-                    .read_text(encoding="utf-8")
+                    Path(self.credential_source_file).expanduser().read_text(encoding="utf-8")
                 )
                 for key in self.credential_source_json_path.split("."):
                     if not isinstance(value, dict):
@@ -234,9 +226,7 @@ class OpenCodeCLIProvider:
                     "Could not load the configured OpenCode credential source"
                 ) from exc
             if not isinstance(value, str) or not value:
-                raise ProviderExecutionError(
-                    "The configured OpenCode credential source is empty"
-                )
+                raise ProviderExecutionError("The configured OpenCode credential source is empty")
             return value
         return None
 
@@ -320,9 +310,7 @@ def _merge_usage(totals: dict[str, int | float], usage: dict[str, Any]) -> None:
         if isinstance(value, dict):
             if key == "cache":
                 for cache_key, cache_value in value.items():
-                    if isinstance(cache_value, (int, float)) and not isinstance(
-                        cache_value, bool
-                    ):
+                    if isinstance(cache_value, (int, float)) and not isinstance(cache_value, bool):
                         name = f"cache_{cache_key}_tokens"
                         totals[name] = totals.get(name, 0) + cache_value
             continue

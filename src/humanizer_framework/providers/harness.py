@@ -42,13 +42,13 @@ class ProviderPool:
         for offset in range(len(self.providers)):
             provider = self.providers[(start + offset) % len(self.providers)]
             try:
-                result = provider.generate(
-                    messages, temperature=temperature, max_tokens=max_tokens
-                )
+                result = provider.generate(messages, temperature=temperature, max_tokens=max_tokens)
                 self.last_errors = errors
                 self.last_provider = provider
                 self.last_provider_name = getattr(provider, "name", type(provider).__name__)
-                self.last_model = getattr(provider, "last_model", None) or getattr(provider, "model", None)
+                self.last_model = getattr(provider, "last_model", None) or getattr(
+                    provider, "model", None
+                )
                 self.last_usage = getattr(provider, "last_usage", None)
                 return result
             except Exception as exc:
@@ -84,9 +84,7 @@ class HarnessProvider:
         opencode_providers: list[Provider] = []
         if credentials:
             for credential in credentials:
-                opencode_providers.append(
-                    OpenCodeCLIProvider(model=model, **common, **credential)
-                )
+                opencode_providers.append(OpenCodeCLIProvider(model=model, **common, **credential))
         else:
             opencode_providers.append(OpenCodeCLIProvider(model=model, **common))
 
@@ -99,9 +97,7 @@ class HarnessProvider:
         return cls([first])
 
     @classmethod
-    def opencode_pool(
-        cls, backends: Sequence[dict[str, object]]
-    ) -> HarnessProvider:
+    def opencode_pool(cls, backends: Sequence[dict[str, object]]) -> HarnessProvider:
         """Build a rotating/failover pool containing only OpenCode processes."""
 
         providers: list[Provider] = []
@@ -114,9 +110,7 @@ class HarnessProvider:
         return cls([ProviderPool(providers)])
 
     @classmethod
-    def opencode_provider_pool(
-        cls, providers: Sequence[OpenCodeCLIProvider]
-    ) -> HarnessProvider:
+    def opencode_provider_pool(cls, providers: Sequence[OpenCodeCLIProvider]) -> HarnessProvider:
         """Build a pool from preconfigured OpenCode API providers."""
 
         return cls([ProviderPool(providers)])
@@ -132,13 +126,15 @@ class HarnessProvider:
         self.last_errors = []
         for provider in self.providers:
             try:
-                result = provider.generate(
-                    messages, temperature=temperature, max_tokens=max_tokens
-                )
+                result = provider.generate(messages, temperature=temperature, max_tokens=max_tokens)
                 self.last_errors = errors
                 self.last_provider = provider
-                self.last_provider_name = getattr(provider, "last_provider_name", None) or getattr(provider, "name", type(provider).__name__)
-                self.last_model = getattr(provider, "last_model", None) or getattr(provider, "model", None)
+                self.last_provider_name = getattr(provider, "last_provider_name", None) or getattr(
+                    provider, "name", type(provider).__name__
+                )
+                self.last_model = getattr(provider, "last_model", None) or getattr(
+                    provider, "model", None
+                )
                 self.last_usage = getattr(provider, "last_usage", None)
                 return result
             except Exception as exc:

@@ -127,6 +127,12 @@ class CommunicationResult(str):
     does not create a second generation API.
     """
 
+    plan: Plan
+    issues: list[ValidationIssue]
+    rewritten: bool
+    provider: str | None
+    prompt_version: str
+
     def __new__(
         cls,
         text: str,

@@ -211,9 +211,7 @@ def test_english_words_containing_smiley_glyphs_are_not_smileys():
 
     from humanizer_framework.validators import _has_smiley
 
-    assert not _has_smiley(
-        "I am writing to express my interest; my experience fits the role."
-    )
+    assert not _has_smiley("I am writing to express my interest; my experience fits the role.")
     assert _has_smiley("Sounds great :)")
     assert _has_smiley("lol XD")
 
