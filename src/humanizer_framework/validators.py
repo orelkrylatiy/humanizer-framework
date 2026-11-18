@@ -21,6 +21,13 @@ _STAGED_OPENERS = (
     "let's dive in",
     "here's what you need to know",
 )
+_META_PREFIX_RE = re.compile(
+    r"^\s*(?:"
+    r"(?:сначала|сейчас)\s+(?:я\s+)?(?:сверю|проверю)\b[^.!?\n]*[.!?…]\s*"
+    r"|подготовлю\s+сообщение\s+через\s+валидатор(?:\s+репозитория)?[.!?…]\s*"
+    r")+",
+    re.IGNORECASE,
+)
 _CTA_MARKERS = (
     "когда вам удобно",
     "когда удобно",
@@ -172,6 +179,14 @@ def validate_output(
         issues.append(ValidationIssue("chatbot_residue", "contains a generic chatbot wrapper"))
     if any(marker in lower for marker in _STAGED_OPENERS):
         issues.append(ValidationIssue("staged_opener", "contains a staged opener"))
+    if request.channel == "telegram" and str(request.message_type) == "outreach" and _META_PREFIX_RE.match(text):
+        issues.append(
+            ValidationIssue(
+                "meta_prefix",
+                "contains provider/process commentary before the outgoing message",
+                hard=True,
+            )
+        )
     if not plan.allow_cta and any(marker in lower for marker in _CTA_MARKERS):
         issues.append(
             ValidationIssue(
