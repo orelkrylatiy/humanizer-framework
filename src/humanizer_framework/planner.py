@@ -107,7 +107,7 @@ def plan(request: CommunicationRequest) -> Plan:
             ask_question=True,
             allow_cta=True,
             max_chars=max_chars,
-            rationale="first contact may explain relevance and invite a reply",
+            rationale="первое обращение может кратко объяснить пользу и пригласить к ответу",
         )
 
     if message_type == MessageType.APPLICATION:
@@ -119,7 +119,7 @@ def plan(request: CommunicationRequest) -> Plan:
             ask_question=False,
             allow_cta=False,
             max_chars=700,
-            rationale="job application should be tailored but not force a chat CTA",
+            rationale="отклик на вакансию должен быть предметным без навязчивого призыва",
         )
 
     if message_type == MessageType.CHANNEL_POST:
@@ -131,7 +131,7 @@ def plan(request: CommunicationRequest) -> Plan:
             ask_question=False,
             allow_cta=True,
             max_chars=1400,
-            rationale="standalone public post should explain one useful idea clearly",
+            rationale="публикация должна понятно раскрывать одну полезную идею",
         )
 
     if message_type == MessageType.FOLLOW_UP:
@@ -143,7 +143,7 @@ def plan(request: CommunicationRequest) -> Plan:
             ask_question=False,
             allow_cta=True,
             max_chars=260,
-            rationale="follow-up should be easy to ignore and easy to answer",
+            rationale="напоминание должно быть ненавязчивым",
         )
 
     if message_type == MessageType.SCHEDULING or _matches(
@@ -157,7 +157,7 @@ def plan(request: CommunicationRequest) -> Plan:
             ask_question=True,
             allow_cta=True,
             max_chars=260,
-            rationale="the user is discussing timing or logistics",
+            rationale="собеседник обсуждает время или организационные детали",
         )
 
     if message_type == MessageType.OBJECTION or _matches(
@@ -171,7 +171,7 @@ def plan(request: CommunicationRequest) -> Plan:
             ask_question=False,
             allow_cta=False,
             max_chars=280,
-            rationale="address the specific concern before advancing the conversation",
+            rationale="сначала ответить на сомнение собеседника",
         )
 
     if latest and _is_question(latest, request.language):
@@ -183,7 +183,7 @@ def plan(request: CommunicationRequest) -> Plan:
             ask_question=False,
             allow_cta=False,
             max_chars=320 if len(latest) > 120 else 220,
-            rationale="answer the current question before adding any next step",
+            rationale="сначала ответить на текущий вопрос",
         )
 
     if _matches(_AGREEMENT_PATTERNS, latest, request.language):
@@ -195,7 +195,7 @@ def plan(request: CommunicationRequest) -> Plan:
             ask_question=False,
             allow_cta=True,
             max_chars=180,
-            rationale="acknowledge agreement without over-explaining",
+            rationale="подтвердить договоренность без лишних объяснений",
         )
 
     return Plan(
@@ -206,5 +206,5 @@ def plan(request: CommunicationRequest) -> Plan:
         ask_question=False,
         allow_cta=False,
         max_chars=180 if len(latest) <= 120 else 260,
-        rationale="a disclosure usually needs a direct acknowledgement, not another sales block",
+        rationale="на сообщение с информацией обычно нужен краткий ответ",
     )
