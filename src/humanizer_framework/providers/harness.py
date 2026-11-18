@@ -21,8 +21,7 @@ def _diagnostics(provider: Provider, errors: list[str]) -> dict[str, Any]:
     if not isinstance(snapshot, dict):
         snapshot = {}
     return {
-        "provider": snapshot.get("provider")
-        or getattr(provider, "name", type(provider).__name__),
+        "provider": snapshot.get("provider") or getattr(provider, "name", type(provider).__name__),
         "model": snapshot.get("model") or getattr(provider, "model", None),
         "usage": snapshot.get("usage")
         if snapshot.get("usage") is not None
@@ -90,9 +89,7 @@ class ProviderPool:
                 "provider": self.name,
                 "provider_error_count": len(errors),
             }
-            raise ProviderExecutionError(
-                "Ни один провайдер пула не ответил: " + ", ".join(errors)
-            )
+            raise ProviderExecutionError("Ни один провайдер пула не ответил: " + ", ".join(errors))
 
 
 class HarnessProvider:
@@ -127,9 +124,7 @@ class HarnessProvider:
         opencode_providers: list[Provider] = []
         if credentials:
             for credential in credentials:
-                opencode_providers.append(
-                    OpenCodeCLIProvider(model=model, **common, **credential)
-                )
+                opencode_providers.append(OpenCodeCLIProvider(model=model, **common, **credential))
         else:
             opencode_providers.append(OpenCodeCLIProvider(model=model, **common))
 
@@ -153,9 +148,7 @@ class HarnessProvider:
         return cls([ProviderPool(providers)])
 
     @classmethod
-    def opencode_provider_pool(
-        cls, providers: Sequence[OpenCodeCLIProvider]
-    ) -> HarnessProvider:
+    def opencode_provider_pool(cls, providers: Sequence[OpenCodeCLIProvider]) -> HarnessProvider:
         """Пул предварительно настроенных OpenCode-провайдеров."""
         return cls([ProviderPool(providers)])
 
@@ -191,6 +184,5 @@ class HarnessProvider:
                 "provider_error_count": len(errors),
             }
             raise ProviderExecutionError(
-                "Не удалось получить ответ от резервных провайдеров: "
-                + ", ".join(errors)
+                "Не удалось получить ответ от резервных провайдеров: " + ", ".join(errors)
             )

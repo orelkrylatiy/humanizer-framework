@@ -12,7 +12,6 @@ _DEFAULT_OPENCODE_MODEL = "openai/gpt-5.6-luna-fast"
 _DEFAULT_OPENAI_API_MODEL = "gpt-4.1-mini"
 
 
-
 def default_provider() -> Provider:
     """Ordered fallback chain used as the framework's generation backend.
 

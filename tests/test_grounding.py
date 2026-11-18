@@ -4,8 +4,11 @@ from humanizer_framework.grounding import validate_grounding
 
 def _req(context=None, conversation=None, business_rules=None):
     return job_search_request(
-        channel="hh", message_type="application", profile="frontend",
-        context=context or {}, conversation=conversation or [],
+        channel="hh",
+        message_type="application",
+        profile="frontend",
+        context=context or {},
+        conversation=conversation or [],
         business_rules=business_rules or [],
     )
 
@@ -45,7 +48,9 @@ def test_url_numbers_do_not_trigger_false_alarm():
 
 def test_unverified_availability_is_hard_invalid():
     request = tutoring_request(
-        channel="profi", message_type="chat_reply", profile="math",
+        channel="profi",
+        message_type="chat_reply",
+        profile="math",
         conversation=[Message("user", "Завтра в 17:00 сможете?")],
     )
     assert "unverified_availability" in _codes("Могу завтра в 17:00.", request)
@@ -68,6 +73,4 @@ def test_unverified_guarantee_is_rejected():
 
 
 def test_factual_guard_does_not_require_numbers_in_every_message():
-    assert not validate_grounding(
-        "Разберем домашние задания по порядку.", _req()
-    )
+    assert not validate_grounding("Разберем домашние задания по порядку.", _req())

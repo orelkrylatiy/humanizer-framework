@@ -166,9 +166,9 @@ def test_soft_issue_with_failed_optional_repair_returns_original():
         profile="math",
         conversation=[Message("user", "Нужно делать домашку")],
     )
-    result = CommunicationFramework(
-        provider, provider_attempts=1, retry_delay_seconds=0
-    ).generate(request)
+    result = CommunicationFramework(provider, provider_attempts=1, retry_delay_seconds=0).generate(
+        request
+    )
     assert result == initial
     assert result.valid
     assert result.rewritten is False
@@ -181,10 +181,12 @@ def test_repairs_and_system_instructions_are_in_russian():
         profile="math",
         conversation=[Message("user", "Нужно делать домашку")],
     )
-    provider = MockProvider([
-        "Отличный вопрос. Могу помочь.",
-        "Да, домашние задания можно разбирать по мере необходимости.",
-    ])
+    provider = MockProvider(
+        [
+            "Отличный вопрос. Могу помочь.",
+            "Да, домашние задания можно разбирать по мере необходимости.",
+        ]
+    )
     CommunicationFramework(provider, provider_attempts=1).generate(request)
     assert "Перепиши только исходящее сообщение" in provider.calls[1][-1]["content"]
     assert "Напиши одно исходящее сообщение" in provider.calls[0][0]["content"]

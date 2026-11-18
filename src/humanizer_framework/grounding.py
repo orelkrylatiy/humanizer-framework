@@ -52,8 +52,11 @@ _AVAILABILITY = re.compile(
     re.IGNORECASE,
 )
 _HIGH_RISK_CLAIMS = (
-    re.compile(r"\b(?:руководил[аи]?|управлял[аи]?|сертифицирован[а]?|"
-               r"лицензирован[а]?|гарантирую|гарантируем)\b", re.IGNORECASE),
+    re.compile(
+        r"\b(?:руководил[аи]?|управлял[аи]?|сертифицирован[а]?|"
+        r"лицензирован[а]?|гарантирую|гарантируем)\b",
+        re.IGNORECASE,
+    ),
 )
 _SCHEDULE_KEYS = ("availability", "slots", "schedule", "free_times", "confirmed_time", "calendar")
 

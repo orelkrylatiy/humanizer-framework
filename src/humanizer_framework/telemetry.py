@@ -70,11 +70,15 @@ def provider_snapshot(provider: Any) -> dict[str, Any]:
     if not isinstance(snapshot, dict):
         snapshot = {}
     actual = getattr(provider, "last_provider", None) or provider
-    name = snapshot.get("provider") or getattr(
-        provider, "last_provider_name", None
-    ) or getattr(actual, "name", type(actual).__name__)
-    model = snapshot.get("model") or getattr(provider, "last_model", None) or getattr(
-        actual, "model", None
+    name = (
+        snapshot.get("provider")
+        or getattr(provider, "last_provider_name", None)
+        or getattr(actual, "name", type(actual).__name__)
+    )
+    model = (
+        snapshot.get("model")
+        or getattr(provider, "last_model", None)
+        or getattr(actual, "model", None)
     )
     usage = snapshot.get("usage")
     if usage is None:

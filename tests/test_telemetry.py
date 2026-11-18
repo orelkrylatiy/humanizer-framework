@@ -37,13 +37,20 @@ def test_telemetry_can_opt_in_to_identifiers(monkeypatch, tmp_path):
     monkeypatch.setenv("HUMANIZER_TELEMETRY_PATH", str(tmp_path / "ids.jsonl"))
     monkeypatch.setenv("HUMANIZER_TELEMETRY_IDENTIFIERS", "1")
     request = CommunicationRequest(
-        channel="telegram", domain="generic", message_type="chat_reply",
+        channel="telegram",
+        domain="generic",
+        message_type="chat_reply",
         context={"lead": "@hr"},
     )
     write_generation_event(
-        request, started_at=datetime.now(UTC), status="success",
-        provider=type("P", (), {"name": "mock"})(), elapsed_ms=1,
-        calls=1, attempts=1, repair_attempted=False,
+        request,
+        started_at=datetime.now(UTC),
+        status="success",
+        provider=type("P", (), {"name": "mock"})(),
+        elapsed_ms=1,
+        calls=1,
+        attempts=1,
+        repair_attempted=False,
     )
     data = json.loads((tmp_path / "ids.jsonl").read_text(encoding="utf-8"))
     assert data["lead"] == "@hr"
@@ -54,16 +61,25 @@ def test_telemetry_never_logs_provider_error_or_exception_secrets(monkeypatch, t
     monkeypatch.setenv("HUMANIZER_TELEMETRY_PATH", str(path))
     monkeypatch.delenv("HUMANIZER_TELEMETRY_IDENTIFIERS", raising=False)
     request = CommunicationRequest(
-        channel="telegram", domain="generic", message_type="chat_reply",
+        channel="telegram",
+        domain="generic",
+        message_type="chat_reply",
         context={"lead": "@secret-person", "vacancy": "private text"},
     )
+
     class Broken:
         name = "harness"
         last_errors = ["zai-http: Authorization Bearer super-secret-api-key"]
         last_usage = {"total_tokens": 10, "debug": "Bearer secret"}
+
     write_generation_event(
-        request, started_at=datetime.now(UTC), status="error",
-        provider=Broken(), elapsed_ms=1, calls=1, attempts=1,
+        request,
+        started_at=datetime.now(UTC),
+        status="error",
+        provider=Broken(),
+        elapsed_ms=1,
+        calls=1,
+        attempts=1,
         repair_attempted=False,
         error=RuntimeError("super-secret-api-key"),
     )
