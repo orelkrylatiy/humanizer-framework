@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from difflib import SequenceMatcher
 
+from .grounding import validate_grounding
 from .models import CommunicationRequest, Plan, StyleConstraints, TargetLength, ValidationIssue
 
 _CHATBOT_RESIDUE = (
@@ -226,6 +227,8 @@ def validate_output(
                 "long first outreach should use whitespace between distinct ideas",
             )
         )
+
+    issues.extend(validate_grounding(text, request))
 
     current = _skeleton(text)
     for previous in _recent_assistant_messages(request):
