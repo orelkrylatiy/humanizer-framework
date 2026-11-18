@@ -198,6 +198,10 @@ class OpenCodeCLIProvider:
                 env=environment,
                 check=False,
             )
+        if completed.returncode != 0:
+            raise ProviderExecutionError(
+                f"OpenCode CLI завершился с кодом {completed.returncode}"
+            )
         output = _parse_opencode_jsonl(completed.stdout)
         self.last_usage = _extract_opencode_usage(completed.stdout)
         if not output:
@@ -261,7 +265,7 @@ def _parse_opencode_jsonl(output: str) -> str:
                 message = error.get("message")
                 if isinstance(message, str) and message:
                     provider_error = message[-1000:]
-    if provider_error and not chunks:
+    if provider_error:
         raise ProviderExecutionError("OpenCode provider reported an error")
     return "".join(chunks).strip()
 

@@ -43,3 +43,17 @@ def test_hh_channel_policy_forbids_smileys():
     )
     policy = render_policy(request, plan(request))
     assert "без смайликов" in policy
+
+
+def test_default_russian_policy_contains_full_upstream_v4_structure():
+    request = tutoring_request(
+        channel="profi",
+        message_type="chat_reply",
+        profile="math",
+        conversation=[Message("user", "Нужна помощь")],
+    )
+    package = CommunicationFramework().prepare(request)
+    for index in range(1, 27):
+        assert f"{index}. " in package.system
+    assert "16. Рекламная лексика" in package.system
+    assert "18. Витиеватые замены" in package.system

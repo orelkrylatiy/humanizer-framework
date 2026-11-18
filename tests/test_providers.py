@@ -385,3 +385,33 @@ def test_cli_exception_never_includes_stderr_secret():
     ):
         _run_command(["fake-cli"], prompt="", timeout_seconds=1)
     assert "secret-key" not in str(exc.value)
+
+
+def test_opencode_nonzero_process_never_returns_partial_answer():
+    from humanizer_framework.errors import ProviderExecutionError
+
+    completed = subprocess.CompletedProcess(
+        args=[], returncode=7,
+        stdout='{"type":"text","part":{"text":"частичный ответ"}}',
+        stderr="Authorization Bearer hidden-key",
+    )
+    provider = OpenCodeCLIProvider(model="openai/gpt-5.6-luna-fast")
+    with (
+        patch("humanizer_framework.providers.cli._resolve_executable", return_value="opencode"),
+        patch("humanizer_framework.providers.cli._run_command", return_value=completed),
+        pytest.raises(ProviderExecutionError) as exc,
+    ):
+        provider.generate([{"role": "user", "content": "Ответь"}])
+    assert "hidden-key" not in str(exc.value)
+
+
+def test_opencode_error_event_fails_even_after_partial_text():
+    from humanizer_framework.errors import ProviderExecutionError
+
+    output = "\n".join([
+        '{"type":"text","part":{"type":"text","text":"Начало"}}',
+        '{"type":"error","error":{"message":"Bearer hidden-key"}}',
+    ])
+    with pytest.raises(ProviderExecutionError) as exc:
+        _parse_opencode_jsonl(output)
+    assert "hidden-key" not in str(exc.value)
