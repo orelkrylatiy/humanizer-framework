@@ -180,11 +180,7 @@ def validate_output(
         issues.append(ValidationIssue("chatbot_residue", "contains a generic chatbot wrapper"))
     if any(marker in lower for marker in _STAGED_OPENERS):
         issues.append(ValidationIssue("staged_opener", "contains a staged opener"))
-    if (
-        request.channel == "telegram"
-        and str(request.message_type) == "outreach"
-        and _META_PREFIX_RE.match(text)
-    ):
+    if _META_PREFIX_RE.match(text):
         issues.append(
             ValidationIssue(
                 "meta_prefix",
