@@ -25,3 +25,22 @@ jobs:
       - run: ruff format --check .
       - run: pytest
       - run: python scripts/validate-package.py
+
+
+  mermaid-diagrams:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install Mermaid renderer
+        run: npm install -g @mermaid-js/mermaid-cli@11
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: "1"
+      - name: Parse and render every Mermaid diagram
+        run: |
+          export PUPPETEER_EXECUTABLE_PATH="$(command -v google-chrome || command -v chromium)"
+          test -x "$PUPPETEER_EXECUTABLE_PATH"
+          printf '%s\n' '{"args":["--no-sandbox","--disable-setuid-sandbox"]}' > /tmp/mermaid-puppeteer.json
+          python scripts/check_mermaid.py --require-render --puppeteer-config /tmp/mermaid-puppeteer.json docs README.md
