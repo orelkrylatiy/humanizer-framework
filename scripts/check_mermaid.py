@@ -54,9 +54,7 @@ def markdown_files(roots: list[Path]):
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "paths", nargs="*", type=Path, default=[Path("docs"), Path("README.md")]
-    )
+    parser.add_argument("paths", nargs="*", type=Path, default=[Path("docs"), Path("README.md")])
     parser.add_argument(
         "--require-render",
         action="store_true",
