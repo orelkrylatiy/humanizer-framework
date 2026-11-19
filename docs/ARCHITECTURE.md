@@ -28,13 +28,14 @@ flowchart TB
     RESULT["CommunicationResult<br/>str subclass with diagnostics"]
     FAIL["GenerationValidationError<br/>or ProviderExecutionError"]
 
-    CALLER --> PREPARE
+    CALLER -->|prepare only| PREPARE
+    CALLER -->|generate| GENERATE
+    GENERATE --> PREPARE
     PREPARE --> PLAN
     PLAN --> CONSTRAINTS
     CONSTRAINTS --> PROMPT
     PROMPT --> PACKAGE
-    PACKAGE --> GENERATE
-    GENERATE --> PROVIDER
+    PACKAGE -->|only during generate| PROVIDER
     PROVIDER -->|provider succeeds| NORMALIZE
     PROVIDER -->|all retries fail| FAIL
     NORMALIZE --> VALIDATE
