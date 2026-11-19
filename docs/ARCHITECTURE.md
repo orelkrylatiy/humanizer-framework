@@ -8,15 +8,79 @@ The calling product owns discovery, scraping, browser automation, persistence, r
 
 Humanizer Framework owns the communication decision and outgoing wording.
 
-Runtime flow
+## Runtime flow — verified against `src/humanizer_framework/framework.py`
 
-product context
-to planner
-to policy registry
-to prompt builder
-to provider
-to validators
-to validated outgoing text
+```mermaid
+flowchart TB
+    CALLER["Calling product<br/>CommunicationRequest:<br/>channel, domain, profile, context, history"]
+    PREPARE["CommunicationFramework.prepare"]
+    PLAN["planner.plan<br/>deterministic conversation action"]
+    CONSTRAINTS["default_constraints<br/>limits and required actions"]
+    PROMPT["build_prompt + PolicyRegistry<br/>trusted policy + bounded untrusted data"]
+    PACKAGE["PromptPackage<br/>can be used without a model"]
+    GENERATE["CommunicationFramework.generate"]
+    PROVIDER["Provider.generate<br/>retry and ordered fallbacks"]
+    NORMALIZE["normalize_output"]
+    VALIDATE["validate_output<br/>hard and soft issues"]
+    ISSUES{"Validation issues?"}
+    REWRITE["At most one focused repair attempt<br/>score hard issues before soft"]
+    FINAL{"Hard issues remaining?"}
+    RESULT["CommunicationResult<br/>str subclass with diagnostics"]
+    FAIL["GenerationValidationError<br/>or ProviderExecutionError"]
+
+    CALLER --> PREPARE
+    PREPARE --> PLAN
+    PLAN --> CONSTRAINTS
+    CONSTRAINTS --> PROMPT
+    PROMPT --> PACKAGE
+    PACKAGE --> GENERATE
+    GENERATE --> PROVIDER
+    PROVIDER -->|provider succeeds| NORMALIZE
+    PROVIDER -->|all retries fail| FAIL
+    NORMALIZE --> VALIDATE
+    VALIDATE --> ISSUES
+    ISSUES -->|yes| REWRITE
+    ISSUES -->|no| FINAL
+    REWRITE --> FINAL
+    FINAL -->|no| RESULT
+    FINAL -->|yes| FAIL
+```
+
+`prepare()` ends at `PromptPackage` and **never contacts a model**.
+`generate()` calls `prepare()`, then calls the configured provider and
+runs normalization plus validators. When there are issues it attempts **one**
+focused rewrite; an optional repair failure can retain an initially valid
+answer. Remaining hard issues raise `GenerationValidationError`.
+Provider failure after retries raises `ProviderExecutionError`.
+`CommunicationResult` is a **string subclass**, not a plain `str`:
+`.text`, `.issues`, `.plan` and `.rewritten` are available to callers.
+
+### Default provider fallback (not a parallel fan-out)
+
+```mermaid
+flowchart LR
+    REQUEST["Framework provider call"]
+    ZAI["ZaiAnthropicProvider<br/>GLM via Z.AI"]
+    OPENCODE["OpenCodeCLIProvider<br/>HUMANIZER_OPENCODE_MODEL"]
+    OPENAI["OpenAI API provider<br/>HUMANIZER_OPENAI_API_MODEL"]
+    SUCCESS["First successful text"]
+    ERROR["All providers unavailable<br/>ProviderExecutionError"]
+
+    REQUEST --> ZAI
+    ZAI -->|success| SUCCESS
+    ZAI -->|failure| OPENCODE
+    OPENCODE -->|success| SUCCESS
+    OPENCODE -->|failure| OPENAI
+    OPENAI -->|success| SUCCESS
+    OPENAI -->|failure| ERROR
+```
+
+The ordered chain above is from
+`src/humanizer_framework/providers/default_chain.py`. A consumer can pass
+another `Provider` to `CommunicationFramework(provider=...)`.
+Neither diagram gives browser, account, database, order-selection or
+paid-delivery responsibility to this framework. Those belong to the caller.
+
 
 ## Axes
 
@@ -82,7 +146,7 @@ CommunicationFramework.generate(request)
 5. If issues exist, make at most one focused rewrite attempt
 6. Keep the candidate only when its issue score improves
 7. Reject remaining hard failures with `GenerationValidationError`
-8. Return a string value. Compatibility diagnostics remain attached to the string for evaluation code
+8. Return a CommunicationResult (a string subclass) with compatible diagnostics
 
 ## Planner design
 
