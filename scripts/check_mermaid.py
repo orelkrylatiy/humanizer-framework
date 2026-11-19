@@ -84,7 +84,7 @@ def main() -> int:
                 if args.puppeteer_config:
                     cmd.extend(["-p", str(args.puppeteer_config.resolve())])
                 result = subprocess.run(cmd, capture_output=True, text=True, check=False)
-                if result.returncode or not dst.is_file() or not dst.read_bytes().startswith(b"<svg"):
+                if result.returncode or not dst.is_file() or b"<svg" not in dst.read_bytes()[:2048]:
                     print(f"ERROR: Mermaid render failed: {path} diagram {num}", file=sys.stderr)
                     print((result.stderr or result.stdout)[-5000:], file=sys.stderr)
                     return 1
