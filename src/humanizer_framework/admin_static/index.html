@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Humanizer Framework · Admin</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="/" aria-label="Humanizer Framework">
+        <span class="brand-mark">h</span>
+        <span class="brand-copy"><strong>humanizer</strong><small>FRAMEWORK</small></span>
+      </a>
+      <div class="nav-label">WORKSPACE</div>
+      <nav class="main-nav" aria-label="Основная навигация">
+        <button class="nav-item active" data-view="generator"><span class="nav-icon">✳</span><span>Генератор</span></button>
+        <button class="nav-item" data-view="activity"><span class="nav-icon">◷</span><span>Активность</span></button>
+        <button class="nav-item" data-view="system"><span class="nav-icon">⌘</span><span>Система</span></button>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="privacy-note"><span class="privacy-dot"></span><div><strong>Локальная панель</strong><small>Тексты не сохраняются в логах</small></div></div>
+        <div class="version-line"><span>Humanizer Framework</span><span id="sidebar-version">—</span></div>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div>
+          <div class="eyebrow" id="page-eyebrow">WORKSPACE / GENERATOR</div>
+          <h1 id="page-title">Генератор текста</h1>
+          <p class="page-subtitle" id="page-subtitle">Выберите режим, задайте задачу и получите проверенный результат.</p>
+        </div>
+        <div class="topbar-status"><span class="status-dot" id="top-status-dot"></span><span id="top-status-text">Проверяем систему</span></div>
+      </header>
+
+      <section class="view active" id="view-generator">
+        <div class="generator-layout">
+          <section class="panel form-panel">
+            <div class="panel-heading">
+              <div><div class="eyebrow">CONFIGURATION</div><h2>Параметры генерации</h2></div>
+              <span class="step-badge">01</span>
+            </div>
+            <form id="generator-form">
+              <div class="field">
+                <label for="mode">Режим работы</label>
+                <select id="mode" name="message_type"></select>
+                <div class="field-hint" id="mode-description">Самостоятельный текст для публикации.</div>
+              </div>
+              <div class="field-grid">
+                <div class="field"><label for="domain">Сфера</label><select id="domain" name="domain"></select></div>
+                <div class="field"><label for="channel">Канал</label><select id="channel" name="channel"></select></div>
+              </div>
+              <div class="field-grid">
+                <div class="field"><label for="language">Язык</label><select id="language" name="language"></select></div>
+                <div class="field"><label for="profile">Профиль</label><input id="profile" name="profile" type="text" value="default" maxlength="100" placeholder="Например, informatics"></div>
+              </div>
+              <div class="field">
+                <label for="prompt">Что нужно написать <span class="required">*</span></label>
+                <textarea id="prompt" name="prompt" rows="5" maxlength="3000" placeholder="Например: Напиши короткий пост о том, как выбрать первую тему для изучения Python. Объясни на простом примере и закончи практическим советом." required></textarea>
+                <div class="field-footer"><span>Ваша задача для модели</span><span id="prompt-count">0 / 3000</span></div>
+              </div>
+              <div class="field">
+                <label for="source-text">Исходный текст или сообщение <span class="optional">необязательно</span></label>
+                <textarea id="source-text" name="source_text" rows="4" maxlength="1800" placeholder="Вставьте сообщение собеседника, черновик или исходные данные. Можно оставить пустым для генерации с нуля."></textarea>
+                <div class="field-footer"><span>Передается как содержание диалога, не как системная инструкция</span><span id="source-count">0 / 1800</span></div>
+              </div>
+              <details class="advanced">
+                <summary><span>Дополнительные настройки</span><span class="summary-hint">Факты, правила и голос</span></summary>
+                <div class="advanced-content">
+                  <div class="field">
+                    <label for="context-json">Факты и контекст (JSON)</label>
+                    <textarea id="context-json" rows="5" spellcheck="false" placeholder='{"subject":"математика","client_name":"Ольга","price":"1500 ₽"}'>{}</textarea>
+                    <div class="field-hint">Только подтвержденные данные. Контекст ограничен 3500 символами.</div>
+                  </div>
+                  <div class="field"><label for="business-rules">Дополнительные правила</label><textarea id="business-rules" rows="3" placeholder="Одно правило на строку"></textarea></div>
+                  <div class="field"><label for="voice-description">Описание голоса автора</label><textarea id="voice-description" rows="2" placeholder="Например: спокойно, прямо, без канцелярита; короткие предложения."></textarea></div>
+                  <div class="field-grid">
+                    <div class="field"><label for="voice-prefer">Предпочитать</label><textarea id="voice-prefer" rows="2" placeholder="Одно предпочтение на строку"></textarea></div>
+                    <div class="field"><label for="voice-avoid">Избегать</label><textarea id="voice-avoid" rows="2" placeholder="Одно правило на строку"></textarea></div>
+                  </div>
+                  <div class="field"><label for="voice-examples">Примеры авторского текста</label><textarea id="voice-examples" rows="3" placeholder="До трех коротких примеров, каждый с новой строки"></textarea></div>
+                </div>
+              </details>
+              <div class="form-error" id="form-error" role="alert" hidden></div>
+              <div class="form-actions">
+                <button class="button button-secondary" id="preview-button" type="button"><span>⌕</span> Просмотр промпта</button>
+                <button class="button button-primary" id="generate-button" type="submit"><span>✳</span> Сгенерировать <span class="button-arrow">↗</span></button>
+              </div>
+              <p class="form-footnote">Генерация использует провайдеры, настроенные в Humanizer Framework. Подготовка промпта не вызывает модель.</p>
+            </form>
+          </section>
+
+          <section class="panel result-panel">
+            <div class="panel-heading">
+              <div><div class="eyebrow">OUTPUT</div><h2>Результат</h2></div>
+              <span class="result-status idle" id="result-status">Ожидание</span>
+            </div>
+            <div class="result-empty" id="result-empty">
+              <div class="empty-icon">✳</div>
+              <h3>Здесь появится ваш текст</h3>
+              <p>Заполните задачу и нажмите «Сгенерировать». Результат пройдет нормализацию и проверки Humanizer Framework.</p>
+            </div>
+            <div class="result-content" id="result-content" hidden>
+              <div class="result-toolbar"><span id="result-validity" class="validity"></span><button class="icon-button" id="copy-button" type="button" title="Скопировать текст">▢ <span>Копировать</span></button></div>
+              <textarea id="result-text" class="result-text" readonly spellcheck="false"></textarea>
+              <div class="result-meta" id="result-meta"></div>
+              <div class="issues-box" id="issues-box" hidden></div>
+            </div>
+            <div class="result-bottom" id="result-bottom"><span class="mini-dot"></span> Проверки фактов и ограничений включены</div>
+          </section>
+        </div>
+
+        <section class="panel preview-panel" id="preview-panel" hidden>
+          <div class="panel-heading"><div><div class="eyebrow">PROMPT INSPECTOR</div><h2>Подготовленный промпт</h2></div><button class="text-button" id="close-preview" type="button">Закрыть ×</button></div>
+          <div class="preview-plan" id="preview-plan"></div>
+          <pre class="prompt-preview" id="prompt-preview"></pre>
+        </section>
+      </section>
+
+      <section class="view" id="view-activity">
+        <div class="section-intro"><div><div class="eyebrow">OBSERVABILITY</div><h2>Активность генерации</h2><p>Сводка строится по технической телеметрии. Содержимое запросов и ответов здесь не хранится.</p></div><button class="button button-secondary" id="refresh-activity">↻ Обновить</button></div>
+        <div class="metric-grid">
+          <article class="metric-card"><span>Успешно</span><strong id="metric-success">—</strong><small>из последних записей</small></article>
+          <article class="metric-card"><span>Ошибки</span><strong id="metric-failures">—</strong><small>сбои генерации</small></article>
+          <article class="metric-card"><span>Среднее время</span><strong id="metric-duration">—</strong><small>миллисекунды</small></article>
+          <article class="metric-card"><span>Исправления</span><strong id="metric-rewritten">—</strong><small>повторная проверка текста</small></article>
+        </div>
+        <section class="panel table-panel">
+          <div class="panel-heading"><div><div class="eyebrow">RECENT RUNS</div><h2>Последние запуски</h2></div><span class="table-caption" id="activity-caption">До 100 записей</span></div>
+          <div id="activity-disabled" class="notice" hidden>Телеметрия отключена. Включите HUMANIZER_TELEMETRY=1, чтобы видеть техническую историю запусков.</div>
+          <div class="table-wrap"><table><thead><tr><th>Время</th><th>Режим</th><th>Канал</th><th>Провайдер</th><th>Время</th><th>Статус</th></tr></thead><tbody id="activity-rows"><tr><td colspan="6" class="table-empty">Загрузка…</td></tr></tbody></table></div>
+        </section>
+      </section>
+
+      <section class="view" id="view-system">
+        <div class="section-intro"><div><div class="eyebrow">RUNTIME</div><h2>Состояние системы</h2><p>Проверка конфигурации без раскрытия API-ключей и учетных данных.</p></div><button class="button button-secondary" id="refresh-system">↻ Проверить снова</button></div>
+        <div class="system-summary" id="system-summary"></div>
+        <section class="panel table-panel">
+          <div class="panel-heading"><div><div class="eyebrow">PROVIDER FALLBACK</div><h2>Цепочка провайдеров</h2></div><span class="table-caption">Порядок попыток</span></div>
+          <div class="provider-list" id="provider-list"><div class="table-empty">Загрузка…</div></div>
+        </section>
+        <section class="panel privacy-panel">
+          <div class="eyebrow">PRIVACY BY DEFAULT</div><h2>Как обрабатываются данные</h2>
+          <div class="privacy-grid">
+            <div><strong>Текст генерации</strong><p>Передается выбранному LLM-провайдеру. Не сохраняется админкой.</p></div>
+            <div><strong>Техническая история</strong><p>JSONL-телеметрия содержит статус, режим, длительность, провайдера и коды проверок, но не тексты.</p></div>
+            <div><strong>Ключи</strong><p>Читаются из переменных окружения или .env. Значения ключей не возвращаются интерфейсу.</p></div>
+          </div>
+        </section>
+      </section>
+      <footer class="app-footer"><span>Humanizer Framework</span><span>Built around CommunicationFramework · <span id="footer-version">—</span></span></footer>
+    </main>
+  </div>
+  <script src="/static/app.js" defer></script>
+</body>
+</html>

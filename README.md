@@ -122,3 +122,13 @@ schema_version=2, старые журналы могут содержать бо
 - CHANGELOG.md - история изменений
 
 CI проверяет Python 3.11, 3.12, 3.13 без реальных облачных вызовов.
+
+
+## Web admin
+
+Install the optional web dependencies and start the local admin:
+
+    pip install -e '.[admin]'
+    humanizer-admin
+
+Open http://127.0.0.1:8765. The admin provides the seven existing message modes, prompt and context inputs, voice settings, a prompt preview via prepare(), and generation via generate(). It also shows provider configuration and content-free activity from the existing JSONL telemetry. The core package remains dependency-free; see docs/ADMIN.md for setup, remote-access security and privacy details.
