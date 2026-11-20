@@ -176,7 +176,7 @@ async function loadStatus() {
     $("#sidebar-version").textContent = data.version; $("#footer-version").textContent = data.version;
     const ready = (data.provider_chain || []).some((item) => item.ready === true);
     $("#top-status-dot").style.background = ready ? "var(--green)" : "var(--amber)";
-    $("#top-status-text").textContent = ready ? "Провайдер доступен" : "Проверьте провайдеры";
+    $("#top-status-text").textContent = ready ? "Провайдер настроен" : "Настройте провайдер";
   } catch (error) {
     $("#top-status-dot").style.background = "var(--red)"; $("#top-status-text").textContent = "Нет связи с API";
   }
@@ -193,7 +193,7 @@ async function loadSystem() {
       const unknown = provider.ready === null;
       return '<div class="provider-row"><div class="provider-name">' + (index + 1) + ". " + escapeHtml(provider.name) + "</div>" +
         '<div class="provider-model">' + escapeHtml(provider.model || "Модель задается провайдером") + "</div>" +
-        '<span class="provider-state ' + (ready ? "ready" : "missing") + '">' + (ready ? "Доступен" : unknown ? "Настроен отдельно" : "Не готов") + "</span>" +
+        '<span class="provider-state ' + (ready ? "ready" : "missing") + '">' + (ready ? "Настроен" : unknown ? "Настроен отдельно" : "Не готов") + "</span>" +
         '<div class="provider-detail">' + escapeHtml(provider.detail || "") + "</div></div>";
     }).join("") || '<div class="table-empty">Цепочка провайдеров не обнаружена.</div>';
   } catch (error) { $("#system-summary").innerHTML = '<div class="notice">' + escapeHtml(error.message) + "</div>"; }

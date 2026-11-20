@@ -155,3 +155,11 @@ def test_activity_does_not_return_unapproved_telemetry_fields(monkeypatch, tmp_p
     assert "prompt" not in payload["items"][0]
     assert "generated_text" not in payload["items"][0]
     assert "lead" not in payload["items"][0]
+
+
+def test_api_responses_have_security_headers(monkeypatch):
+    response = _client(monkeypatch).get("/api/health")
+    assert response.status_code == 200
+    assert response.headers["x-frame-options"] == "DENY"
+    assert response.headers["x-content-type-options"] == "nosniff"
+    assert response.headers["cache-control"] == "no-store"
