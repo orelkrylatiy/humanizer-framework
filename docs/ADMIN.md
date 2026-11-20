@@ -16,7 +16,7 @@ The admin uses the same default provider chain as CommunicationFramework():
 
 1. Z.AI / GLM using ZAI_API_KEY (or the supported Anthropic-compatible key variables);
 2. OpenCode CLI using its local authentication and HUMANIZER_OPENCODE_MODEL;
-3. direct OpenAI API using OPENAI_API_KEY and HUMANIZER_OPENAI_API_MODEL.
+3. OpenCode CLI configured as an isolated OpenAI API backend using OPENAI_API_KEY and HUMANIZER_OPENAI_API_MODEL.
 
 Set credentials in the environment or in the .env file used by Humanizer Framework. The UI only reports whether a credential is present; it never returns its value.
 
