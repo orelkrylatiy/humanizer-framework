@@ -216,13 +216,22 @@ async function loadActivity() {
     const rows = data.items || [];
     $("#activity-rows").innerHTML = rows.length ? rows.map((item) =>
       "<tr><td>" + escapeHtml(formatTime(item.timestamp)) + "</td>" +
+      "<td>" + escapeHtml(item.project || "—") + "</td>" +
       "<td>" + escapeHtml(item.message_type || "—") + "</td>" +
       "<td>" + escapeHtml(item.channel || "—") + "</td>" +
       "<td>" + escapeHtml(item.provider || "—") + (item.model ? "<br><small>" + escapeHtml(item.model) + "</small>" : "") + "</td>" +
+      "<td>" + ((item.usage_totals || []).map((usage) => {
+        const hasTokens = ["total_tokens", "input_tokens", "output_tokens", "prompt_tokens", "completion_tokens"]
+          .some((key) => typeof usage[key] === "number");
+        const total = usage.total_tokens ?? ((usage.input_tokens || usage.prompt_tokens || 0) + (usage.output_tokens || usage.completion_tokens || 0));
+        const cost = usage.cost_usd ?? usage.cost;
+        return escapeHtml(usage.model || usage.provider || "usage") + ": " + escapeHtml(hasTokens ? total + " ток." : "нет данных") +
+          (cost == null ? "" : "<br><small>" + escapeHtml(cost + " cost") + "</small>");
+      }).join("<br>") || "—") + "</td>" +
       "<td>" + (item.elapsed_ms == null ? "—" : escapeHtml(item.elapsed_ms + " мс")) + "</td>" +
       '<td><span class="pill ' + (item.status === "success" ? "success" : "error") + '">' + (item.status === "success" ? "Успешно" : "Ошибка") + "</span></td></tr>"
-    ).join("") : '<tr><td colspan="6" class="table-empty">' + (data.enabled === false ? "Телеметрия отключена." : "Пока нет записей генерации.") + "</td></tr>";
-  } catch (error) { $("#activity-rows").innerHTML = '<tr><td colspan="6" class="table-empty">' + escapeHtml(error.message) + "</td></tr>"; }
+    ).join("") : '<tr><td colspan="8" class="table-empty">' + (data.enabled === false ? "Телеметрия отключена." : "Пока нет записей генерации.") + "</td></tr>";
+  } catch (error) { $("#activity-rows").innerHTML = '<tr><td colspan="8" class="table-empty">' + escapeHtml(error.message) + "</td></tr>"; }
 }
 document.querySelectorAll(".nav-item").forEach((button) => button.addEventListener("click", () => switchView(button.dataset.view)));
 $("#generator-form").addEventListener("submit", generate);

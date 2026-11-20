@@ -58,6 +58,7 @@ class CommunicationFramework:
         repair_attempted = False
         rewritten = False
         self._last_provider_attempts = 0
+        self._call_state.usage_calls = []
         if self.provider is None:
             raise RuntimeError(
                 "generate() requires a provider. Use prepare() for prompt-only mode."
@@ -133,6 +134,7 @@ class CommunicationFramework:
                 repair_attempted=repair_attempted,
                 rewritten=rewritten,
                 issues=issues,
+                usage_calls=self._call_state.usage_calls,
             )
             return result
         except Exception as exc:
@@ -146,6 +148,7 @@ class CommunicationFramework:
                 attempts=attempts,
                 repair_attempted=repair_attempted,
                 error=exc,
+                usage_calls=self._call_state.usage_calls,
             )
             raise
 
@@ -164,11 +167,13 @@ class CommunicationFramework:
         for attempt in range(self.provider_attempts):
             self._last_provider_attempts += 1
             try:
-                return self.provider.generate(
+                output = self.provider.generate(
                     messages,
                     temperature=temperature,
                     max_tokens=max_tokens,
                 )
+                self._call_state.usage_calls.append(provider_snapshot(self.provider))
+                return output
             except Exception as exc:
                 last_error = exc
                 if attempt + 1 < self.provider_attempts and self.retry_delay_seconds:

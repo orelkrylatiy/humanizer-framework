@@ -213,6 +213,7 @@ def _read_activity(limit: int) -> dict[str, Any]:
         "attempts",
         "repair_attempted",
         "rewritten",
+        "project",
         "channel",
         "domain",
         "message_type",
@@ -220,6 +221,7 @@ def _read_activity(limit: int) -> dict[str, Any]:
         "language",
         "provider",
         "model",
+        "usage_totals",
         "provider_error_count",
         "issues",
         "error_type",
@@ -234,6 +236,20 @@ def _read_activity(limit: int) -> dict[str, Any]:
         if event.get("event") != "generation":
             continue
         item = {key: event[key] for key in allowed if key in event}
+        if isinstance(item.get("usage_totals"), list):
+            item["usage_totals"] = [
+                {
+                    "provider": str(usage.get("provider", "unknown"))[:120],
+                    "model": str(usage.get("model", "unknown"))[:120],
+                    **{
+                        str(key)[:50]: value
+                        for key, value in usage.items()
+                        if isinstance(value, (int, float)) and not isinstance(value, bool)
+                    },
+                }
+                for usage in item["usage_totals"][:10]
+                if isinstance(usage, dict)
+            ]
         if isinstance(item.get("issues"), list):
             item["issues"] = [str(value)[:80] for value in item["issues"][:20]]
         items.append(item)

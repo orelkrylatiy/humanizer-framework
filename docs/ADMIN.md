@@ -57,13 +57,13 @@ The deterministic planner and hard validators remain authoritative. For example,
 
 ## Activity and privacy
 
-The Activity view reads the existing JSONL telemetry file. It shows only allowlisted technical fields: timestamp, status, elapsed time, mode, channel, provider/model, retry counts and validation issue codes. It does not show prompt text, source text, generated text, identifiers or raw provider exceptions.
+The Activity view reads the existing JSONL telemetry file. It shows only allowlisted technical fields: timestamp, consumer project, status, elapsed time, mode, channel, provider/model, numeric token usage and validation issue codes. It does not show prompt text, source text, generated text, identifiers or raw provider exceptions.
 
-The UI does not persist prompts or generated output. The model provider receives the prompt and supplied context as part of normal generation. To disable telemetry:
+The UI does not persist prompts or generated output. The model provider receives the prompt and supplied context as part of normal generation. JSONL generation events include numeric token usage when the provider reports it. For multi-call generations, `usage_calls` records each provider/model result and `usage_totals` sums usage by provider and model. No estimate is substituted when the provider omits usage. To disable telemetry:
 
     export HUMANIZER_TELEMETRY=0
 
-The telemetry path can be changed with HUMANIZER_TELEMETRY_PATH. The activity view will show an empty state if telemetry is disabled or no events have been recorded.
+The telemetry path can be changed with HUMANIZER_TELEMETRY_PATH. HUMANIZER_PROJECT sets the consumer name in each event; if unset, the working directory name is used. The activity view will show an empty state if telemetry is disabled or no events have been recorded.
 
 ## Troubleshooting
 

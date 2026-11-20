@@ -114,12 +114,13 @@ def write_generation_event(
     rewritten: bool = False,
     issues: list[Any] | None = None,
     error: BaseException | None = None,
+    usage_calls: list[dict[str, Any]] | None = None,
 ) -> None:
     path = telemetry_path()
     if path is None:
         return
     event: dict[str, Any] = {
-        "schema_version": 2,
+        "schema_version": 3,
         "event": "generation",
         "timestamp": started_at.isoformat(),
         "project": os.environ.get("HUMANIZER_PROJECT") or Path.cwd().name,
@@ -134,6 +135,33 @@ def write_generation_event(
     }
     if issues is not None:
         event["issues"] = [getattr(issue, "code", "unknown") for issue in issues]
+    if usage_calls:
+        safe_calls: list[dict[str, Any]] = []
+        totals: dict[tuple[str, str], dict[str, int | float]] = {}
+        for call in usage_calls:
+            provider_name = str(call.get("provider", "unknown"))[:120]
+            model_name = str(call.get("model", "unknown"))[:120]
+            usage = call.get("usage")
+            numeric_usage = (
+                {
+                    str(key)[:50]: value
+                    for key, value in usage.items()
+                    if isinstance(value, (int, float)) and not isinstance(value, bool)
+                }
+                if isinstance(usage, dict)
+                else {}
+            )
+            safe_calls.append(
+                {"provider": provider_name, "model": model_name, "usage": numeric_usage}
+            )
+            bucket = totals.setdefault((provider_name, model_name), {})
+            for key, value in numeric_usage.items():
+                bucket[key] = bucket.get(key, 0) + value
+        event["usage_calls"] = safe_calls
+        event["usage_totals"] = [
+            {"provider": provider_name, "model": model_name, **usage}
+            for (provider_name, model_name), usage in totals.items()
+        ]
     if error is not None:
         event["error_type"] = type(error).__name__
         # Текст исключения принципиально не сохраняем: некоторые SDK
