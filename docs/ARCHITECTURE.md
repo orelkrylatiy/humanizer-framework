@@ -230,10 +230,16 @@ Promptfoo can compare prompt and model variants in CI.
 
 Langfuse can later collect production traces into datasets and experiments.
 
-## Planned service boundary
+## Optional local admin boundary
 
-Python consumers use the library directly.
+The optional admin module serves a local browser UI and a small HTTP API:
+- GET /api/options, /api/status and /api/activity;
+- POST /api/preview, backed by prepare() and a mock provider;
+- POST /api/generate, backed by generate() and the configured provider chain.
 
-Non-Python consumers should eventually use a small internal HTTP wrapper around the same request and result contracts.
+This is an operator interface, not a public multi-tenant service contract. It binds to loopback by default, requires a token for remote clients, and does not persist prompt or output content. Its UI and API are deliberately thin wrappers; planning, policy composition, provider fallback and validation remain in the framework.
 
-The HTTP service must contain no separate communication policy implementation.
+## Planned product service boundary
+
+Python consumers should continue to use the library directly.
+A non-Python product that needs a stable integration contract should use a separately deployed internal service around CommunicationRequest and CommunicationResult. The local admin endpoints are not a replacement for that product API and must not contain a second communication policy implementation.

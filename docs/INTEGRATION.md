@@ -92,7 +92,7 @@ The product selects a profile and supplies its facts at runtime. Channel and mes
 
 Keep this repository as the source of truth and expose a small service wrapper around `prepare()` and `generate()` rather than reimplementing policies in Java, JavaScript or Go.
 
-A future HTTP contract should accept `CommunicationRequest` and return validated text or a typed generation error without exposing provider-specific details.
+The repository also includes an optional local operator admin. Its preview and generation endpoints are intended for a human using the browser, not as a stable multi-tenant product API. A future product-facing HTTP contract should accept `CommunicationRequest` and return validated text or a typed generation error without exposing provider-specific details.
 
 ## Current Profi Worker bridge (implementation detail)
 
