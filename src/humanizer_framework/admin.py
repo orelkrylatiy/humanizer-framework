@@ -360,8 +360,7 @@ def create_app() -> FastAPI:
                 {"value": key, "label": _DOMAIN_LABELS.get(key, key)} for key in registry.domains
             ],
             "channels": [
-                {"value": key, "label": _CHANNEL_LABELS.get(key, key)}
-                for key in registry.channels
+                {"value": key, "label": _CHANNEL_LABELS.get(key, key)} for key in registry.channels
             ],
             "languages": [
                 {"value": key, "label": _LANGUAGE_LABELS.get(key, key)}
