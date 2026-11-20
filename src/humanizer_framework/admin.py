@@ -55,9 +55,9 @@ _LANGUAGE_LABELS = {"ru": "Русский", "en": "English", "es": "Español", "
 class VoiceInput(BaseModel):
     id: str = Field(default="default", max_length=80)
     description: str = Field(default="", max_length=1000)
-    prefer: list[str] = Field(default_factory=list)
-    avoid: list[str] = Field(default_factory=list)
-    examples: list[str] = Field(default_factory=list)
+    prefer: list[str] = Field(default_factory=list, max_length=8)
+    avoid: list[str] = Field(default_factory=list, max_length=8)
+    examples: list[str] = Field(default_factory=list, max_length=3)
 
 
 class GenerateInput(BaseModel):
@@ -69,7 +69,7 @@ class GenerateInput(BaseModel):
     language: str = Field(default="ru", max_length=20)
     profile: str = Field(default="default", max_length=100)
     context: dict[str, Any] = Field(default_factory=dict)
-    business_rules: list[str] = Field(default_factory=list)
+    business_rules: list[str] = Field(default_factory=list, max_length=8)
     voice: VoiceInput | None = None
 
 
@@ -104,11 +104,13 @@ def _build_request(payload: GenerateInput) -> CommunicationRequest:
     try:
         context_size = len(json.dumps(payload.context, ensure_ascii=False, default=str))
     except (TypeError, ValueError) as exc:
-        raise HTTPException(status_code=422, detail="Контекст должен быть JSON-совместимым.") from exc
+        raise HTTPException(
+            status_code=422, detail="Контекст должен быть JSON-совместимым."
+        ) from exc
     if context_size > 3500:
         raise HTTPException(
             status_code=422,
-            detail="Контекст слишком большой. Максимальный размер — 3500 символов.",
+            detail="Контекст слишком большой. Максимальный размер: 3500 символов.",
         )
     if len(payload.business_rules) > 8 or any(len(rule) > 500 for rule in payload.business_rules):
         raise HTTPException(
@@ -118,7 +120,12 @@ def _build_request(payload: GenerateInput) -> CommunicationRequest:
 
     voice = None
     if payload.voice and any(
-        (payload.voice.description.strip(), payload.voice.prefer, payload.voice.avoid, payload.voice.examples)
+        (
+            payload.voice.description.strip(),
+            payload.voice.prefer,
+            payload.voice.avoid,
+            payload.voice.examples,
+        )
     ):
         voice = VoiceProfile(
             id=payload.voice.id.strip() or "custom",
@@ -130,7 +137,9 @@ def _build_request(payload: GenerateInput) -> CommunicationRequest:
 
     rules = [f"Цель сообщения - {prompt}"]
     rules.extend(rule.strip() for rule in payload.business_rules if rule.strip())
-    conversation = [Message("user", payload.source_text.strip())] if payload.source_text.strip() else []
+    conversation = (
+        [Message("user", payload.source_text.strip())] if payload.source_text.strip() else []
+    )
     return CommunicationRequest(
         channel=payload.channel,
         domain=payload.domain,
@@ -165,15 +174,10 @@ def _activity_summary(items: list[dict[str, Any]]) -> dict[str, Any]:
     successes = sum(item.get("status") == "success" for item in items)
     failures = sum(item.get("status") == "error" for item in items)
     durations = [
-        item.get("elapsed_ms")
-        for item in items
-        if isinstance(item.get("elapsed_ms"), (int, float))
+        item.get("elapsed_ms") for item in items if isinstance(item.get("elapsed_ms"), (int, float))
     ]
     issue_counts = Counter(
-        issue
-        for item in items
-        for issue in item.get("issues", [])
-        if isinstance(issue, str)
+        issue for item in items for issue in item.get("issues", []) if isinstance(issue, str)
     )
     return {
         "shown": len(items),
@@ -202,9 +206,24 @@ def _read_activity(limit: int) -> dict[str, Any]:
         return {"enabled": True, "items": [], "summary": _activity_summary([]), "read_error": True}
 
     allowed = (
-        "timestamp", "status", "elapsed_ms", "calls", "attempts", "repair_attempted",
-        "rewritten", "channel", "domain", "message_type", "profile", "language",
-        "provider", "model", "provider_error_count", "issues", "error_type", "error",
+        "timestamp",
+        "status",
+        "elapsed_ms",
+        "calls",
+        "attempts",
+        "repair_attempted",
+        "rewritten",
+        "channel",
+        "domain",
+        "message_type",
+        "profile",
+        "language",
+        "provider",
+        "model",
+        "provider_error_count",
+        "issues",
+        "error_type",
+        "error",
     )
     items: list[dict[str, Any]] = []
     for row in rows:
@@ -242,6 +261,13 @@ def _provider_status() -> dict[str, Any]:
             if name == "zai-http":
                 ready = key_state["zai"]
                 detail = "Ключ найден" if ready else "Не найден API-ключ Z.AI"
+            elif name == "opencode-cli" and str(model or "").startswith("openai-api/"):
+                ready = key_state["opencode_cli"] and key_state["openai"]
+                detail = (
+                    "OpenCode CLI и OPENAI_API_KEY найдены"
+                    if ready
+                    else "Нужны OpenCode CLI и OPENAI_API_KEY"
+                )
             elif name == "opencode-cli":
                 ready = key_state["opencode_cli"]
                 detail = (
@@ -268,6 +294,10 @@ def _provider_status() -> dict[str, Any]:
 
     path = telemetry_path()
     try:
+        telemetry_exists = bool(path and path.is_file())
+    except OSError:
+        telemetry_exists = False
+    try:
         version = importlib.metadata.version("humanizer-framework")
     except importlib.metadata.PackageNotFoundError:
         version = "source checkout"
@@ -279,14 +309,16 @@ def _provider_status() -> dict[str, Any]:
         "telemetry": {
             "enabled": path is not None,
             "file": path.name if path is not None else None,
-            "exists": bool(path and path.is_file()),
+            "exists": telemetry_exists,
         },
     }
 
 
 def create_app() -> FastAPI:
     load_env()
-    app = FastAPI(title="Humanizer Framework Admin", docs_url=None, redoc_url=None, openapi_url=None)
+    app = FastAPI(
+        title="Humanizer Framework Admin", docs_url=None, redoc_url=None, openapi_url=None
+    )
     app.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static")
 
     @app.middleware("http")
@@ -325,8 +357,7 @@ def create_app() -> FastAPI:
                 for key, value in _MODE_LABELS.items()
             ],
             "domains": [
-                {"value": key, "label": _DOMAIN_LABELS.get(key, key)}
-                for key in registry.domains
+                {"value": key, "label": _DOMAIN_LABELS.get(key, key)} for key in registry.domains
             ],
             "channels": [
                 {"value": key, "label": _CHANNEL_LABELS.get(key, key)}

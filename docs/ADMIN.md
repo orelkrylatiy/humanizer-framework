@@ -8,10 +8,6 @@ From a checkout:
 
     pip install -e '.[admin]'
 
-Or install the package with the admin extra:
-
-    pip install 'humanizer-framework[admin]'
-
 The admin extra installs FastAPI and Uvicorn. The core library remains dependency-free.
 
 ## Configure providers

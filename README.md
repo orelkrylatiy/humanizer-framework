@@ -119,16 +119,17 @@ schema_version=2, старые журналы могут содержать бо
 - docs/ARCHITECTURE.md - архитектура
 - docs/INTEGRATION.md - интеграция
 - docs/UPSTREAM_SYNC.md - состояние upstream
+- docs/ADMIN.md - веб-админка
 - CHANGELOG.md - история изменений
 
 CI проверяет Python 3.11, 3.12, 3.13 без реальных облачных вызовов.
 
 
-## Web admin
+## Веб-админка
 
-Install the optional web dependencies and start the local admin:
+Установите дополнительные зависимости и запустите локальную панель:
 
     pip install -e '.[admin]'
     humanizer-admin
 
-Open http://127.0.0.1:8765. The admin provides the seven existing message modes, prompt and context inputs, voice settings, a prompt preview via prepare(), and generation via generate(). It also shows provider configuration and content-free activity from the existing JSONL telemetry. The core package remains dependency-free; see docs/ADMIN.md for setup, remote-access security and privacy details.
+Откройте http://127.0.0.1:8765. В админке доступны семь существующих режимов сообщений, собственная задача, исходный текст, контекст, голос автора, предпросмотр промпта через prepare() и генерация через generate(). Также доступны состояние провайдеров и техническая история запусков без содержимого сообщений. Основная библиотека по-прежнему не зависит от FastAPI. Настройка и безопасность описаны в docs/ADMIN.md.
